@@ -185,7 +185,10 @@
             "Standard_L4",
             "Standard_L8",
             "Standard_L16",
-            "Standard_L32"
+            "Standard_L32",
+            "Standard_NC12",
+            "Standard_NC24",
+            "Standard_NC24r"
          ],
          "metadata":{
             "description":"Size of the worker nodes."
