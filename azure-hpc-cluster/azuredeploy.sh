@@ -427,6 +427,7 @@ setup_hpc_user()
     else
         useradd -c "HPC User" -g $HPC_GROUP -d $SHARE_HOME/$HPC_USER -s /bin/bash -u $HPC_UID $HPC_USER
     fi
+    chmod 777 /home/$USER
 
     chown $HPC_USER:$HPC_GROUP $SHARE_CFS
 }
@@ -497,12 +498,20 @@ install_cfs()
             sed -i 's|^storeMgmtdDirectory.*|storeMgmtdDirectory = /data/beegfs/mgmt|g' /etc/beegfs/beegfs-mgmtd.conf
             sed -i 's|^storeMetaDirectory.*|storeMetaDirectory = '$BEEGFS_METADATA'|g' /etc/beegfs/beegfs-meta.conf
             sed -i 's/^sysMgmtdHost.*/sysMgmtdHost = '$MASTER_HOSTNAME'/g' /etc/beegfs/beegfs-meta.conf
+            
+            #disable RDMA because Azure VMs only support RDMA via MPI for now
+            beegfs-setup-rdma -i off
+            
             /etc/init.d/beegfs-mgmtd start
             /etc/init.d/beegfs-meta start
         else
             yum install -y beegfs-storage
             sed -i 's|^storeStorageDirectory.*|storeStorageDirectory = '$CFS_STORAGE_LOCATION'|g' /etc/beegfs/beegfs-storage.conf
             sed -i 's/^sysMgmtdHost.*/sysMgmtdHost = '$MASTER_HOSTNAME'/g' /etc/beegfs/beegfs-storage.conf
+            
+            #disable RDMA because Azure VMs only support RDMA via MPI for now
+            beegfs-setup-rdma -i off
+            
             /etc/init.d/beegfs-storage start
         fi
 
