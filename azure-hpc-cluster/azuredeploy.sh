@@ -427,7 +427,7 @@ setup_hpc_user()
     else
         useradd -c "HPC User" -g $HPC_GROUP -d $SHARE_HOME/$HPC_USER -s /bin/bash -u $HPC_UID $HPC_USER
     fi
-    chmod 777 /home/$USER
+    chmod 777 /home/azureuser
 
     chown $HPC_USER:$HPC_GROUP $SHARE_CFS
 }
