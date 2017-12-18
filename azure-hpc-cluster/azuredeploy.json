@@ -35,7 +35,7 @@
       },
       "image":{
          "type":"string",
-         "defaultValue":"OpenLogic:CentOS-HPC:7.3",
+         "defaultValue":"OpenLogic:CentOS:7.3",
          "allowedValues":[
             "OpenLogic:CentOS-HPC:7.1",
             "OpenLogic:CentOS-HPC:7.3",
@@ -48,7 +48,7 @@
       },
       "headNodeSize":{
          "type":"string",
-         "defaultValue":"Standard_H8",
+         "defaultValue":"Standard_DS12_v2",
          "allowedValues":[
             "Standard_A2",
             "Standard_A4",
@@ -109,7 +109,7 @@
       },
       "workerNodeSize":{
          "type":"string",
-         "defaultValue":"Standard_H16",
+         "defaultValue":"Standard_DS12_v2",
          "allowedValues":[
             "Standard_A2",
             "Standard_A3",
