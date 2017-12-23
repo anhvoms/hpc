@@ -105,8 +105,9 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
       sudo cp -f /tmp/slurm.conf /etc/slurm-llnl/slurm.conf
       sudo chown slurm /etc/slurm-llnl/slurm.conf
       sudo slurmd
-      ENDSSH1
-       i=`expr $i + 1`
+ENDSSH1
+
+      i=`expr $i + 1`
    done
    rm -f $mungekey
 else
