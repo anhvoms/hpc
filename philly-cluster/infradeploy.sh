@@ -25,7 +25,7 @@ TEMPLATE_BASE=$8
 echo $IP $NAME >> /etc/hosts
 
 masterIndex=0
-if [ $NAME = $INFRA_BASE_NAME$masterIndex] ; then
+if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
    
    #setup ssh key for this particular node
    mkdir -p /home/$USER/.ssh
@@ -78,7 +78,7 @@ if [ $NAME = $INFRA_BASE_NAME$masterIndex] ; then
 
    # Start the master daemon service
    sudo -u slurm /usr/sbin/slurmctld 
-   munged --force >>
+   munged --force
    slurmd
 
    #Prepare mungekey

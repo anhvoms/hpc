@@ -274,7 +274,7 @@
                "vmSize":"[parameters('headNodeSize')]"
             },
             "osProfile":{
-               "computername":"[variables('infraVMName')]",
+               "computername":"[concat(variables('infraVMName'),copyindex())]",
                "adminUsername":"[parameters('adminUsername')]",
                "adminPassword":"[parameters('adminPassword')]"
             },
