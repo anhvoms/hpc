@@ -28,12 +28,12 @@ masterIndex=0
 if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
    
    #setup ssh key for this particular node
-   mkdir -p /home/$USER/.ssh
-   echo -e  'y\n' | ssh-keygen -f /home/$USER/.ssh/id_rsa -t rsa -N ''
-   echo 'Host *' >> /home/$USER/.ssh/config
-   echo 'StrictHostKeyChecking no' >> /home/$USER/.ssh/config
-   chmod 400 /home/$USER/.ssh/config
-   chown $USER:$USER /home/$USER/.ssh/config
+   mkdir -p /home/$ADMIN_USERNAME/.ssh
+   echo -e  'y\n' | ssh-keygen -f /home/$ADMIN_USERNAME/.ssh/id_rsa -t rsa -N ''
+   echo 'Host *' >> /home/$ADMIN_USERNAME/.ssh/config
+   echo 'StrictHostKeyChecking no' >> /home/$ADMIN_USERNAME/.ssh/config
+   chmod 400 /home/$ADMIN_USERNAME/.ssh/config
+   chown $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh/config
 
    mkdir -p ~/.ssh
    echo 'Host *' >> ~/.ssh/config
@@ -53,11 +53,11 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
        i=`expr $i + 1`
    done
 
-   chown -R $USER:$USER /home/$USER/.ssh/
-   chown -R $USER:$USER /home/$USER/bin/
+   chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh/
+   chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/bin/
 
    # Don't require password for HPC user sudo
-   echo "$USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+   echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
    
    # Disable tty requirement for sudo
    sed -i 's/^Defaults[ ]*requiretty/# Defaults requiretty/g' /etc/sudoers
