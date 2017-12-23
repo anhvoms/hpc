@@ -2,16 +2,6 @@
    "$schema":"https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
    "contentVersion":"1.0.0.0",
    "parameters":{
-      "scheduler":{
-         "type":"string",
-         "defaultValue":"Slurm",
-         "allowedValues":[
-            "Slurm"
-         ],
-         "metadata":{
-            "description":"HPC scheduler to install."
-         }
-      },
       "adminUserName":{
          "type":"string",
          "defaultValue":"philly",
@@ -115,9 +105,6 @@
       }
    },
    "variables":{
-      "imagePublisher":"[split(parameters('image'), ':')[0]]",
-      "imageOffer":"[split(parameters('image'), ':')[1]]",
-      "imageSku":"[split(parameters('image'), ':')[2]]",
       "newStorageAccountName":"[concat(uniqueString(resourceGroup().id), 'sa')]",
       "storageAccountName1":"[concat(uniqueString('1', resourceGroup().id), 'sa')]",
       "storageAccountName2":"[concat(uniqueString('2', resourceGroup().id), 'sa')]",
@@ -154,14 +141,9 @@
             }
          }
       },
-      "clusterFilesystem":"[split(parameters('clusterFilesystem'), ':')[0]]",
-      "clusterFilesystemStorageLocation":"[split(parameters('clusterFilesystem'), ':')[1]]",
       "vnetID":"[resourceId('Microsoft.Network/virtualNetworks',variables('networkSettings').virtualNetworkName)]",
       "subnetRef":"[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.dse.name)]",
-      "templateBaseUrl":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/",
-      "masterCLI":"[concat('bash masterdeploy.sh ', variables('infraVMName'), ' ', parameters('infraNodeCount'), ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', parameters('hpcUserName'), ' ', variables('templateBaseUrl'), ' ', variables('imageOffer'), ' ', parameters('scheduler'), ' ', parameters('installEasybuild'))]",
-      "infraCLI":"[concat('bash infradeploy.sh ', variables('infraVMName'), ' ', parameters('infraNodeCount'), ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', parameters('hpcUserName'), ' ', variables('templateBaseUrl'), ' ', variables('imageOffer'), ' ', parameters('scheduler'), ' ', parameters('installEasybuild'))]",
-      "workerCLI":"[concat('bash workerdeploy.sh ', variables('infraVMName'), ' ', parameters('infraNodeCount'), ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', parameters('hpcUserName'), ' ', variables('templateBaseUrl'), ' ', variables('imageOffer'), ' ', parameters('scheduler'), ' ', parameters('installEasybuild'))]"
+      "templateBaseUrl":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/"
    },
    "resources":[
       {
@@ -389,10 +371,7 @@
             },
             "storageProfile":{
                "imageReference":{
-                  "publisher":"[variables('imagePublisher')]",
-                  "offer":"[variables('imageOffer')]",
-                  "sku":"[variables('imageSku')]",
-                  "version":"latest"
+                  "id":"/subscriptions/60d86a1d-43f9-4fef-9c37-871a3c085e42/resourceGroups/anhPhillyImage/providers/Microsoft.Compute/images/anhUbuntuPA"                              
                },
                "osDisk":{
                   "createOption":"FromImage"
