@@ -48,8 +48,14 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
    while [ $i -lt $NUMNODES ]
    do
        nextip=`expr $i + $IPSTART`
-       echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts
-       sshpass -p "$ADMIN_PASSWORD" ssh-copy-id $ADMIN_USERNAME@$INFRA_BASE_NAME$i
+       echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts      
+       
+       sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "mkdir -p .ssh"
+       cat /home/$ADMIN_USERNAME/.ssh/config | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/config"
+       cat /home/$ADMIN_USERNAME/.ssh/id_rsa | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/id_rsa"
+       cat /home/$ADMIN_USERNAME/.ssh/id_rsa.pub | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/authorized_keys"
+       sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "chmod 700 .ssh; chmod 640 .ssh/authorized_keys; chmod 400 .ssh/config; chmod 400 .ssh/id_rsa"       
+       
        i=`expr $i + 1`
    done
 
@@ -71,7 +77,7 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
    sed -i -- 's/__MASTERNODE__/'"$NAME"'/g' $SLURMCONF
 
    lastvm=`expr $NUMNODES - 1`
-   sed -i -- 's/__WORKERNODES__/'"$INFRA_BASE_NAME"'[0-'"$lastvm"']/g' $SLURMCONF
+   sed -i -- 's/__WORKERNODES__/'"$INFRA_BASE_NAME"'[1-'"$lastvm"']/g' $SLURMCONF
    cp -f $SLURMCONF /etc/slurm-llnl/slurm.conf
    chown slurm /etc/slurm-llnl/slurm.conf
    chmod o+w /var/spool # Write access for slurmctld log. Consider switch log file to another location
@@ -95,7 +101,6 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
       sudo -u $ADMIN_USERNAME scp $SLURMCONF $ADMIN_USERNAME@$worker:/tmp/slurm.conf
       sudo -u $ADMIN_USERNAME scp /tmp/hosts.$$ $ADMIN_USERNAME@$worker:/tmp/hosts
       sudo -u $ADMIN_USERNAME ssh $ADMIN_USERNAME@$worker << 'ENDSSH1'
-      sudo sh -c "cat /tmp/hosts >> /etc/hosts"
       sudo chmod g-w /var/log
       sudo cp -f /tmp/munge.key /etc/munge/munge.key
       sudo chown munge /etc/munge/munge.key
