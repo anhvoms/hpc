@@ -313,7 +313,7 @@
                "fileUris":[
                   "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
                ],
-               "commandToExecute":"[concat('bash infradeploy.sh ', variables('masterVMName'), copyindex('infraExtCopt'), ' ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('templateBaseUrl'))]"
+               "commandToExecute":"[concat('bash infradeploy.sh ', variables('infraVMName'), copyindex('infraExtCopy'), ' ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('templateBaseUrl'))]"
             }
          }
       },
@@ -407,7 +407,7 @@
                "fileUris":[
                   "[concat(variables('templateBaseUrl'), 'workerdeploy.sh')]"
                ],
-               "commandToExecute":"[concat('bash workerdeploy.sh ', variables('masterVMName'), copyindex('infraExtCopt'), ' ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('templateBaseUrl'))]"
+               "commandToExecute":"[concat('bash workerdeploy.sh ', variables('workerVMName'), copyindex('workerExtCopy'), ' ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('templateBaseUrl'))]"
             }
          }
       }      
