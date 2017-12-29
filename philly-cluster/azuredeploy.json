@@ -97,6 +97,13 @@
          "metadata":{
             "description":"This template creates N worker node. Use workerNodeCount to specify that N."
          }
+      },
+      "OSImage":{
+        "type":"string",
+        "defaultValue":"provide_your_image_id_string",
+        "metadata":{
+            "description":"Image to use for all instances of the infrastructure nodes."
+        }
       }
    },
    "variables":{
@@ -275,7 +282,7 @@
             },
             "storageProfile":{
               "imageReference":{
-                  "id":"/subscriptions/60d86a1d-43f9-4fef-9c37-871a3c085e42/resourceGroups/anhPhillyImage/providers/Microsoft.Compute/images/anhUbuntuPA2"
+                  "id":"[parameters('OSImage')]"
                },
                "osDisk":{
                   "createOption":"FromImage"
@@ -366,7 +373,7 @@
             },
             "storageProfile":{
                "imageReference":{
-                  "id":"/subscriptions/60d86a1d-43f9-4fef-9c37-871a3c085e42/resourceGroups/anhPhillyImage/providers/Microsoft.Compute/images/anhUbuntuPA2"                              
+                  "id":"[parameters('OSImage')]"
                },
                "osDisk":{
                   "createOption":"FromImage"
