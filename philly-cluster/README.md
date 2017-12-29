@@ -1,6 +1,6 @@
-# Deploy a Slurm or PBS OSS HPC Cluster in Azure
+# Deploy a Slurm Cluster in Azure
 
-Deploys a Slurm or PBS OSS cluster with a head node and one or more worker nodes.
+Deploys a cluster with N number of infrastructure nodes and M number of worker nodes
 
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhvoms%2Fhpc%2Fmaster%2Fphilly-cluster%2Fazuredeploy.json" target="_blank">
    <img alt="Deploy to Azure" src="http://azuredeploy.net/deploybutton.png"/>
