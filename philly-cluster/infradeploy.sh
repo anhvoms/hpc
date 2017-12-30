@@ -113,16 +113,17 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
 
        echo waiting for $worker to be ready
 
-       sec=0
-       result=""
+       second=0
+       result="abc"
        hostUp="Host is up"
        portReady="open"
        while [[ $result != *"$HostUp"* || $result != *"$portReady"* ]]; do
            result=$(nmap -p 8080 $worker)
-           sec=`expr $sec +5`
+           second=`expr $second + 5`
            sleep 5
        done
-       echo $worker is ready after $sec seconds of waiting
+       echo $result
+       echo $worker is ready after $second seconds of waiting
        
        sudo -u $ADMIN_USERNAME scp $mungekey $ADMIN_USERNAME@$worker:/tmp/munge.key
        sudo -u $ADMIN_USERNAME scp $SLURMCONF $ADMIN_USERNAME@$worker:/tmp/slurm.conf
