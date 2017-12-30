@@ -7,26 +7,26 @@ fi
 
 echo "Script arguments: $@"
 
-if [ $# != 12 ]; then
-    echo "Usage: $0 <MasterName> <InfraNodeCount> <AdminUserName> <AdminUserPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerNodeCount> <WorkerIpBase> <WorkerIpStart> <TemplateBaseUrl>"
+if [ $# != 11 ]; then
+    echo "Usage: $0 <InfraNodeCount> <AdminUserName> <AdminUserPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerNodeCount> <WorkerIpBase> <WorkerIpStart> <TemplateBaseUrl>"
     exit 1
 fi
 
-NAME=$1
+NAME=`hostname`
 IP=`ifconfig eth0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'`
 
-NUMNODES=$2
-ADMIN_USERNAME=$3
-ADMIN_PASSWORD=$4
-INFRA_BASE_NAME=$5
-IPBASE=$6
-IPSTART=$7
+NUMNODES=$1
+ADMIN_USERNAME=$2
+ADMIN_PASSWORD=$3
+INFRA_BASE_NAME=$4
+IPBASE=$5
+IPSTART=$6
 
-WORKER_BASE_NAME=$8
-WORKERCOUNT=$9
-WORKERIPBASE=$10
-WORKERIPSTART=$11
-TEMPLATE_BASE=$12
+WORKER_BASE_NAME=$7
+WORKERCOUNT=$8
+WORKERIPBASE=$9
+WORKERIPSTART=$10
+TEMPLATE_BASE=$11
 
 echo $IPBASE$IPSTART master >> /etc/hosts
 echo $IP $NAME >> /etc/hosts
