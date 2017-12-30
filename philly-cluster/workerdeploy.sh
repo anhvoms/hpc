@@ -55,7 +55,7 @@ while [ $i -lt $NUMNODES ]
 do
    nextip=$((i + WORKERIPSTART))
    echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts
-   ((++i)
+   ((++i))
 done
 
 #entries for worker nodes
