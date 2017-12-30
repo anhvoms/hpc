@@ -7,20 +7,26 @@ fi
 
 echo "Script arguments: $@"
 
-if [ $# != 8 ]; then
-    echo "Usage: $0 <MasterName> <InfraNodeCount> <AdminUserName> <AdminUserPassword> <InfraBaseName> <IpBase> <IpStart> <TemplateBaseUrl>"
+if [ $# != 12 ]; then
+    echo "Usage: $0 <MasterName> <InfraNodeCount> <AdminUserName> <AdminUserPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerNodeCount> <WorkerIpBase> <WorkerIpStart> <TemplateBaseUrl>"
     exit 1
 fi
 
 NAME=$1
 IP=`ifconfig eth0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'`
+
 NUMNODES=$2
 ADMIN_USERNAME=$3
 ADMIN_PASSWORD=$4
 INFRA_BASE_NAME=$5
 IPBASE=$6
 IPSTART=$7
-TEMPLATE_BASE=$8
+
+WORKER_BASE_NAME=$8
+WORKERCOUNT=$9
+WORKERIPBASE=$10
+WORKERIPSTART=$11
+TEMPLATE_BASE=$12
 
 echo $IPBASE$IPSTART master >> /etc/hosts
 echo $IP $NAME >> /etc/hosts
@@ -104,8 +110,7 @@ ENDSSH1
       i=`expr $i + 1`
    done
    rm -f $mungekey
-else
-    
+else   
    i=0
    while [ $i -lt $NUMNODES ]
    do
@@ -115,5 +120,13 @@ else
    done
    ncat -v -l 8090
 fi
+
+i=0
+while [ $i -lt $WORKERCOUNT ]
+do
+   nextip=`expr $i + $WORKERIPSTART`
+   echo $WORKERIPBASE$nextip $WORKER_BASE_NAME$i >> /etc/hosts
+   i=`expr $i + 1`
+done
 
 exit 0
