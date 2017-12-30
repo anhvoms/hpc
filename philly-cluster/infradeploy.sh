@@ -45,42 +45,6 @@ chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh
 
 if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
    
-   #setup ssh key for this particular node
-   # mkdir -p /home/$ADMIN_USERNAME/.ssh
-   # echo -e  'y\n' | ssh-keygen -f /home/$ADMIN_USERNAME/.ssh/id_rsa -t rsa -N ''
-   # echo 'Host *' >> /home/$ADMIN_USERNAME/.ssh/config
-   # echo 'StrictHostKeyChecking no' >> /home/$ADMIN_USERNAME/.ssh/config
-   # chmod 400 /home/$ADMIN_USERNAME/.ssh/config
-   # chown $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh/config
-
-   # mkdir -p ~/.ssh
-   # echo 'Host *' >> ~/.ssh/config
-   # echo 'StrictHostKeyChecking no' >> ~/.ssh/config
-   # chmod 400 ~/.ssh/config
-
-   # #install sshpass if necessary,
-   # command -v sshpass >/dev/null 2>&1 || {apt-get install sshpass -y}
-    
-
-   # #Loop through all infra nodes and copy ssh key
-   # i=0
-   # while [ $i -lt $NUMNODES ]
-   # do
-   #     nextip=`expr $i + $IPSTART`
-   #     echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts      
-       
-   #     sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "mkdir -p .ssh"
-   #     cat /home/$ADMIN_USERNAME/.ssh/config | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/config"
-   #     cat /home/$ADMIN_USERNAME/.ssh/id_rsa | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/id_rsa"
-   #     cat /home/$ADMIN_USERNAME/.ssh/id_rsa.pub | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/authorized_keys"
-   #     sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "chmod 700 .ssh; chmod 640 .ssh/authorized_keys; chmod 400 .ssh/config; chmod 400 .ssh/id_rsa"       
-       
-   #     i=`expr $i + 1`
-   # done
-
-   # chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh/
-   # chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/bin/
-
    sudo chmod g-w /var/log
 
    # Download slurm.conf and fill in the node info
