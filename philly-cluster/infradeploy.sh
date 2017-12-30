@@ -114,15 +114,11 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
        echo waiting for $worker to be ready
 
        second=0
-       result="abc"
-       hostUp="Host is up"
-       portReady="open"
-       while [[ $result != *"$HostUp"* || $result != *"$portReady"* ]]; do
-           result=$(nmap -p 8080 $worker)
-           second=`expr $second + 5`
+       while [ -n "$(echo a|ncat $worker 8090 2>&1)" ]; do
+           second=`expr $second + 5`                     
            sleep 5
        done
-       echo $result
+
        echo $worker is ready after $second seconds of waiting
        
        sudo -u $ADMIN_USERNAME scp $mungekey $ADMIN_USERNAME@$worker:/tmp/munge.key
@@ -152,7 +148,7 @@ else
        echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts
        i=`expr $i + 1`
    done
-   ncat -l 8080
+   ncat -v -l 8090
 fi
 
 exit 0
