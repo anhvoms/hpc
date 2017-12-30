@@ -5,7 +5,7 @@ if [[ $(id -u) -ne 0 ]] ; then
     exit 1
 fi
 
-echo "Script arguments: $@"
+echo "Script arguments: $*"
 
 if [ $# != 11 ]; then
     echo "Usage: $0 <InfraNodeCount> <AdminUserName> <AdminUserPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerNodeCount> <WorkerIpBase> <WorkerIpStart> <TemplateBaseUrl>"
@@ -25,8 +25,8 @@ IPSTART=$6
 WORKER_BASE_NAME=$7
 WORKERCOUNT=$8
 WORKERIPBASE=$9
-WORKERIPSTART=$10
-TEMPLATE_BASE=$11
+WORKERIPSTART=${10}
+TEMPLATE_BASE=${11}
 
 echo $IPBASE$IPSTART master >> /etc/hosts
 echo $IP $NAME >> /etc/hosts
@@ -86,7 +86,7 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
 
        second=0
        while [ -n "$(echo a|ncat $worker 8090 2>&1)" ]; do
-           second=`expr $second + 5`                     
+           ((second += 5))                  
            sleep 5
        done
 
@@ -107,16 +107,16 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
        sudo slurmd
 ENDSSH1
 
-      i=`expr $i + 1`
+      ((++i))
    done
    rm -f $mungekey
 else   
    i=0
    while [ $i -lt $NUMNODES ]
    do
-       nextip=`expr $i + $IPSTART`
+       nextip=$((i + IPSTART))
        echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts
-       i=`expr $i + 1`
+       ((++i))
    done
    ncat -v -l 8090
 fi
@@ -124,9 +124,9 @@ fi
 i=0
 while [ $i -lt $WORKERCOUNT ]
 do
-   nextip=`expr $i + $WORKERIPSTART`
+   nextip=$((i + WORKERIPSTART))
    echo $WORKERIPBASE$nextip $WORKER_BASE_NAME$i >> /etc/hosts
-   i=`expr $i + 1`
+   ((++i))
 done
 
 exit 0
