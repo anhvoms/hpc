@@ -25,7 +25,8 @@ TEMPLATE_BASE=$8
 echo $IP $NAME >> /etc/hosts
 
 masterIndex=0
-command -v sshpass >/dev/null 2>&1 || {apt-get install nmap -y}
+command -v sshpass >/dev/null 2>&1 || {apt-get install sshpass -y}
+command -v ncat >/dev/null 2>&1 || {apt-get install nmap -y}
 
 # Don't require password for HPC user sudo
 echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
@@ -33,14 +34,17 @@ echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 # Disable tty requirement for sudo
 sed -i 's/^Defaults[ ]*requiretty/# Defaults requiretty/g' /etc/sudoers
 
-cp -r /var/lib/philly/bootstrap/.ssh /home/$ADMIN_USERNAME/.ssh
-cp -r /var/lib/philly/bootstrap/.ssh ~/.ssh
+mkdir -p /home/$ADMIN_USERNAME/.ssh
+mkdir -p ~/.ssh
+cp /var/lib/philly/bootstrap/.ssh/* /home/$ADMIN_USERNAME/.ssh
+cp /var/lib/philly/bootstrap/.ssh/* ~/.ssh
 
 chmod 700 /home/$ADMIN_USERNAME/.ssh
 chmod 400 /home/$ADMIN_USERNAME/.ssh/config
 chmod 640 /home/$ADMIN_USERNAME/.ssh/authorized_keys
 chmod 400 /home/$ADMIN_USERNAME/.ssh/id_rsa
 chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh
+
 if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
    
    #setup ssh key for this particular node
@@ -108,12 +112,16 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
    while [ $i -lt $NUMNODES ]
    do
        worker=$INFRA_BASE_NAME$i
+
+       echo waiting for $worker to be ready     
        until nmap -p 8080 $worker | grep -q open; do sleep 1; done
+       echo $worker is ready
+       
        sudo -u $ADMIN_USERNAME scp $mungekey $ADMIN_USERNAME@$worker:/tmp/munge.key
        sudo -u $ADMIN_USERNAME scp $SLURMCONF $ADMIN_USERNAME@$worker:/tmp/slurm.conf
        sudo -u $ADMIN_USERNAME scp /tmp/hosts.$$ $ADMIN_USERNAME@$worker:/tmp/hosts
        sudo -u $ADMIN_USERNAME ssh $ADMIN_USERNAME@$worker << 'ENDSSH1'
-       sudo  chmod g-w /var/log
+       sudo chmod g-w /var/log
        sudo cp -f /tmp/munge.key /etc/munge/munge.key
        sudo chown munge /etc/munge/munge.key
        sudo chgrp munge /etc/munge/munge.key
