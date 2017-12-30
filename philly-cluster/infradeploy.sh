@@ -114,9 +114,13 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
        echo waiting for $worker to be ready
 
        sec=0
-       until nmap -p 8080 $worker | grep -q open; do
-           sleep 1
-           sec=`expr $sec +1`
+       result=""
+       hostUp="Host is up"
+       portReady="open"
+       while [[ $result != *"$HostUp"* || $result != *"$portReady"* ]]; do
+           result=$(nmap -p 8080 $worker)
+           sec=`expr $sec +5`
+           sleep 5
        done
        echo $worker is ready after $sec seconds of waiting
        
