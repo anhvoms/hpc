@@ -25,48 +25,59 @@ TEMPLATE_BASE=$8
 echo $IP $NAME >> /etc/hosts
 
 masterIndex=0
+command -v sshpass >/dev/null 2>&1 || {apt-get install nmap -y}
+
+# Don't require password for HPC user sudo
+echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# Disable tty requirement for sudo
+sed -i 's/^Defaults[ ]*requiretty/# Defaults requiretty/g' /etc/sudoers
+
+cp -r /var/lib/philly/bootstrap/.ssh /home/$ADMIN_USERNAME/.ssh
+cp -r /var/lib/philly/bootstrap/.ssh ~/.ssh
+
+chmod 700 /home/$ADMIN_USERNAME/.ssh
+chmod 400 /home/$ADMIN_USERNAME/.ssh/config
+chmod 640 /home/$ADMIN_USERNAME/.ssh/authorized_keys
+chmod 400 /home/$ADMIN_USERNAME/.ssh/id_rsa
+chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh
 if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
    
    #setup ssh key for this particular node
-   mkdir -p /home/$ADMIN_USERNAME/.ssh
-   echo -e  'y\n' | ssh-keygen -f /home/$ADMIN_USERNAME/.ssh/id_rsa -t rsa -N ''
-   echo 'Host *' >> /home/$ADMIN_USERNAME/.ssh/config
-   echo 'StrictHostKeyChecking no' >> /home/$ADMIN_USERNAME/.ssh/config
-   chmod 400 /home/$ADMIN_USERNAME/.ssh/config
-   chown $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh/config
+   # mkdir -p /home/$ADMIN_USERNAME/.ssh
+   # echo -e  'y\n' | ssh-keygen -f /home/$ADMIN_USERNAME/.ssh/id_rsa -t rsa -N ''
+   # echo 'Host *' >> /home/$ADMIN_USERNAME/.ssh/config
+   # echo 'StrictHostKeyChecking no' >> /home/$ADMIN_USERNAME/.ssh/config
+   # chmod 400 /home/$ADMIN_USERNAME/.ssh/config
+   # chown $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh/config
 
-   mkdir -p ~/.ssh
-   echo 'Host *' >> ~/.ssh/config
-   echo 'StrictHostKeyChecking no' >> ~/.ssh/config
-   chmod 400 ~/.ssh/config
+   # mkdir -p ~/.ssh
+   # echo 'Host *' >> ~/.ssh/config
+   # echo 'StrictHostKeyChecking no' >> ~/.ssh/config
+   # chmod 400 ~/.ssh/config
 
-   #install sshpass if necessary,
-   command -v sshpass >/dev/null 2>&1 || {apt-get install sshpass}
+   # #install sshpass if necessary,
+   # command -v sshpass >/dev/null 2>&1 || {apt-get install sshpass -y}
+    
 
-   #Loop through all infra nodes and copy ssh key
-   i=0
-   while [ $i -lt $NUMNODES ]
-   do
-       nextip=`expr $i + $IPSTART`
-       echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts      
+   # #Loop through all infra nodes and copy ssh key
+   # i=0
+   # while [ $i -lt $NUMNODES ]
+   # do
+   #     nextip=`expr $i + $IPSTART`
+   #     echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts      
        
-       sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "mkdir -p .ssh"
-       cat /home/$ADMIN_USERNAME/.ssh/config | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/config"
-       cat /home/$ADMIN_USERNAME/.ssh/id_rsa | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/id_rsa"
-       cat /home/$ADMIN_USERNAME/.ssh/id_rsa.pub | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/authorized_keys"
-       sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "chmod 700 .ssh; chmod 640 .ssh/authorized_keys; chmod 400 .ssh/config; chmod 400 .ssh/id_rsa"       
+   #     sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "mkdir -p .ssh"
+   #     cat /home/$ADMIN_USERNAME/.ssh/config | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/config"
+   #     cat /home/$ADMIN_USERNAME/.ssh/id_rsa | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/id_rsa"
+   #     cat /home/$ADMIN_USERNAME/.ssh/id_rsa.pub | sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "cat >> .ssh/authorized_keys"
+   #     sshpass -p "$ADMIN_PASSWORD" ssh $ADMIN_USERNAME@$INFRA_BASE_NAME$i "chmod 700 .ssh; chmod 640 .ssh/authorized_keys; chmod 400 .ssh/config; chmod 400 .ssh/id_rsa"       
        
-       i=`expr $i + 1`
-   done
+   #     i=`expr $i + 1`
+   # done
 
-   chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh/
-   chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/bin/
-
-   # Don't require password for HPC user sudo
-   echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-   
-   # Disable tty requirement for sudo
-   sed -i 's/^Defaults[ ]*requiretty/# Defaults requiretty/g' /etc/sudoers
+   # chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh/
+   # chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/bin/
 
    sudo chmod g-w /var/log
 
@@ -92,24 +103,25 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
    cp -f /etc/munge/munge.key $mungekey
    chown $ADMIN_USERNAME $mungekey
 
-   #Looping all workers to setup slurm
-   i=0
+   #Looping all other infranodes to setup slurm
+   i=1
    while [ $i -lt $NUMNODES ]
    do
-      worker=$INFRA_BASE_NAME$i
-      sudo -u $ADMIN_USERNAME scp $mungekey $ADMIN_USERNAME@$worker:/tmp/munge.key
-      sudo -u $ADMIN_USERNAME scp $SLURMCONF $ADMIN_USERNAME@$worker:/tmp/slurm.conf
-      sudo -u $ADMIN_USERNAME scp /tmp/hosts.$$ $ADMIN_USERNAME@$worker:/tmp/hosts
-      sudo -u $ADMIN_USERNAME ssh $ADMIN_USERNAME@$worker << 'ENDSSH1'
-      sudo chmod g-w /var/log
-      sudo cp -f /tmp/munge.key /etc/munge/munge.key
-      sudo chown munge /etc/munge/munge.key
-      sudo chgrp munge /etc/munge/munge.key
-      sudo rm -f /tmp/munge.key
-      sudo /usr/sbin/munged --force # ignore egregrious security warning
-      sudo cp -f /tmp/slurm.conf /etc/slurm-llnl/slurm.conf
-      sudo chown slurm /etc/slurm-llnl/slurm.conf
-      sudo slurmd
+       worker=$INFRA_BASE_NAME$i
+       until nmap -p 8080 $worker | grep -q open; do sleep 1; done
+       sudo -u $ADMIN_USERNAME scp $mungekey $ADMIN_USERNAME@$worker:/tmp/munge.key
+       sudo -u $ADMIN_USERNAME scp $SLURMCONF $ADMIN_USERNAME@$worker:/tmp/slurm.conf
+       sudo -u $ADMIN_USERNAME scp /tmp/hosts.$$ $ADMIN_USERNAME@$worker:/tmp/hosts
+       sudo -u $ADMIN_USERNAME ssh $ADMIN_USERNAME@$worker << 'ENDSSH1'
+       sudo  chmod g-w /var/log
+       sudo cp -f /tmp/munge.key /etc/munge/munge.key
+       sudo chown munge /etc/munge/munge.key
+       sudo chgrp munge /etc/munge/munge.key
+       sudo rm -f /tmp/munge.key
+       sudo /usr/sbin/munged --force # ignore egregrious security warning
+       sudo cp -f /tmp/slurm.conf /etc/slurm-llnl/slurm.conf
+       sudo chown slurm /etc/slurm-llnl/slurm.conf
+       sudo slurmd
 ENDSSH1
 
       i=`expr $i + 1`
@@ -124,6 +136,7 @@ else
        echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts
        i=`expr $i + 1`
    done
+   ncat -l 8080
 fi
 
 exit 0
