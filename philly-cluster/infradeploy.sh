@@ -111,9 +111,14 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
    do
        worker=$INFRA_BASE_NAME$i
 
-       echo waiting for $worker to be ready     
-       until nmap -p 8080 $worker | grep -q open; do sleep 1; done
-       echo $worker is ready
+       echo waiting for $worker to be ready
+
+       sec=0
+       until nmap -p 8080 $worker | grep -q open; do
+           sleep 1
+           sec=`expr $sec +1`
+       done
+       echo $worker is ready after $sec seconds of waiting
        
        sudo -u $ADMIN_USERNAME scp $mungekey $ADMIN_USERNAME@$worker:/tmp/munge.key
        sudo -u $ADMIN_USERNAME scp $SLURMCONF $ADMIN_USERNAME@$worker:/tmp/slurm.conf
