@@ -25,8 +25,6 @@ TEMPLATE_BASE=$8
 echo $IP $NAME >> /etc/hosts
 
 masterIndex=0
-command -v sshpass >/dev/null 2>&1 || {apt-get install sshpass -y}
-command -v ncat >/dev/null 2>&1 || {apt-get install nmap -y}
 
 # Don't require password for HPC user sudo
 echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
