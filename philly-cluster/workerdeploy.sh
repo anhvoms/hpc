@@ -5,7 +5,7 @@ if [[ $(id -u) -ne 0 ]] ; then
     exit 1
 fi
 
-echo "Script arguments: $@"
+echo "Script arguments: $*"
 
 if [ $# != 11 ]; then
     echo "Usage: $0 <InfraNodeCount> <AdminUserName> <AdminUserPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerNodeCount> <WorkerIpBase> <WorkerIpStart> <TemplateBaseUrl>"
@@ -53,7 +53,7 @@ chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh
 i=0
 while [ $i -lt $NUMNODES ]
 do
-   nextip=$((i + WORKERIPSTART))
+   nextip=$((i + IPSTART))
    echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts
    ((++i))
 done
