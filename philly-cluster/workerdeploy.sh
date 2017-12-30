@@ -12,8 +12,8 @@ if [ $# != 11 ]; then
     exit 1
 fi
 
-NAME=`hostname`
-IP=`ifconfig eth0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'`
+NAME=$(hostname)
+IP=$(ifconfig eth0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1')
 
 NUMNODES=$1
 ADMIN_USERNAME=$2
@@ -51,20 +51,18 @@ chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh
 
 #entries for infra nodes
 i=0
-   while [ $i -lt $NUMNODES ]
-   do
-       nextip=`expr $i + $IPSTART`
-       echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts
-       i=`expr $i + 1`
-   done
-   ncat -v -l 8090
-fi
+while [ $i -lt $NUMNODES ]
+do
+   nextip=$((i + WORKERIPSTART))
+   echo $IPBASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts
+   ((++i)
+done
 
 #entries for worker nodes
 i=0
 while [ $i -lt $WORKERCOUNT ]
 do
-   nextip=`expr $i + $WORKERIPSTART`
+   nextip=$((i + WORKERIPSTART))
    echo $WORKERIPBASE$nextip $WORKER_BASE_NAME$i >> /etc/hosts
-   i=`expr $i + 1`
+   ((++i))
 done
