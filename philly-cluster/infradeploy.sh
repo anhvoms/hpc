@@ -22,6 +22,7 @@ IPBASE=$6
 IPSTART=$7
 TEMPLATE_BASE=$8
 
+echo $IPBASE$IPSTART master >> /etc/hosts
 echo $IP $NAME >> /etc/hosts
 
 masterIndex=0
