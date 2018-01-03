@@ -124,7 +124,7 @@ function generateMachinesYml()
 }
 
 
-function updateCloudConfigFile()
+function updateConfigFile()
 {
     etcdInitialCluster=""
     i=0
@@ -144,6 +144,8 @@ function updateCloudConfigFile()
     sed -i "s/__HOSTNAME__/$NAME/g" /var/lib/philly/cloud-config.yml
     sed -i "s/__HOSTIP__/$IP/g" /var/lib/philly/cloud-config.yml
     sed -i "s?__ETCD_INITIAL_CLUSTER__?$etcdInitialCluster?g" /var/lib/philly/cloud-config.yml
+
+    cp /var/lib/philly/azure.yml /var/lib/philly/azure.yml.orig
 }
 
 
@@ -222,12 +224,15 @@ function slurmSlaveSetup()
 initialSetup
 fixHostsFile
 generateMachinesYml
-updateCloudConfigFile
+updateConfigFile
 
 if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
-    slurmMasterSetup   
+    slurmMasterSetup
 else
     slurmSlaveSetup
 fi
+
+echo "All READY - invoking CoreOS-cloudinit"
+coreos-cloudinit --from-file /var/lib/philly/cloud-config.yml
 
 exit 0
