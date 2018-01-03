@@ -80,7 +80,7 @@ function fixHostsFile()
 
 function generateMachinesYml()
 {
-    machineYmlFile="/home/$ADMIN_USERNAME/machines.yml"
+    machineYmlFile="/var/lib/philly/machines.yml"
     echo "#This file is generated automatically at provisioning" > $machineYmlFile
 
     {
@@ -93,7 +93,7 @@ function generateMachinesYml()
         echo "      rack: rack0"  
         echo "      rackLocation: 1" 
         echo "      outlet: 1.0" 
-        echo "      role:infrastructure" 
+        echo "      role: infrastructure" 
         echo "      mac: 00:00:00:00:00:00" 
         echo "      ip: $INFRA_IP_BASE$nextip" 
         echo "      infraId: $i" 
@@ -119,7 +119,7 @@ function generateMachinesYml()
         echo "      rack: rack0" 
         echo "      rackLocation: 1" 
         echo "      outlet: 1.0" 
-        echo "      role:worker" 
+        echo "      role: worker" 
         echo "      mac: 00:00:00:00:00:00" 
         echo "      ip: $WORKER_IP_BASE$nextip" 
         echo "      os: prod-worker" 
