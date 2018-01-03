@@ -32,6 +32,11 @@ masterIndex=0
 
 function initialSetup()
 {
+    # update machine-id because all VM's start from the same image.
+    # fleet/etcd uses /etc/machine-id to self identify
+    rm /etc/machine-id
+    systemd-machine-id-setup
+    
     # Don't require password for HPC user sudo
     echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
     
