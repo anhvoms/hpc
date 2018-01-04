@@ -32,6 +32,8 @@ masterIndex=0
 
 function initialSetup()
 {
+    echo "Initial Setup: get new machine id, copy stored .ssh folder"
+    
     # update machine-id because all VM's start from the same image.
     # fleet/etcd uses /etc/machine-id to self identify
     rm /etc/machine-id
@@ -52,11 +54,16 @@ function initialSetup()
     chmod 640 /home/$ADMIN_USERNAME/.ssh/authorized_keys
     chmod 400 /home/$ADMIN_USERNAME/.ssh/id_rsa
     chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh
+
+    usermod -a -G systemd-journal $ADMIN_USERNAME
+    usermod -a -G docker $ADMIN_USERNAME
+    echo "Initial setup done"
 }
 
 
 function fixHostsFile()
 {
+    echo "Fixing up hosts file to include entries to other infrastructure nodes and worker nodes"
     #fix up hosts file
     echo $INFRA_IP_BASE$INFRA_IP_START master >> /etc/hosts
 
@@ -75,11 +82,14 @@ function fixHostsFile()
         echo $WORKER_IP_BASE$nextip $WORKER_BASE_NAME$i >> /etc/hosts
         ((++i))
     done
+    echo "Finished setting up hosts file"
 }
 
 
 function generateMachinesYml()
 {
+    echo "Generating machines.yml file to be included as part of cluster.yml"
+    
     machineYmlFile="/var/lib/philly/machines.yml"
     echo "#This file is generated automatically at provisioning" > $machineYmlFile
 
@@ -126,11 +136,15 @@ function generateMachinesYml()
         ((++i))
     done
     } >> $machineYmlFile
+
+    echo "Finished setting up machines.yml file"
 }
 
 
 function updateConfigFile()
 {
+    echo "Updating cloud-config.yml file"
+    
     etcdInitialCluster=""
     i=0
     while [ $i -lt $INFRA_COUNT ]
@@ -151,6 +165,11 @@ function updateConfigFile()
     sed -i "s?__ETCD_INITIAL_CLUSTER__?$etcdInitialCluster?g" /var/lib/philly/cloud-config.yml
 
     cp /var/lib/philly/azure.yml /var/lib/philly/azure.yml.orig
+
+    domain=$(grep search /etc/resolv.conf | awk -F" " '{print $2}')
+    sed -i "s/__DOMAIN__/$domain/g" /var/lib/philly/azure.yml
+    
+    echo "Finished updating cloud-config.yml file"
 }
 
 
@@ -237,7 +256,18 @@ else
     slurmSlaveSetup
 fi
 
-echo "All READY - invoking CoreOS-cloudinit"
+#Applying cloud config
 coreos-cloudinit --from-file /var/lib/philly/cloud-config.yml
+
+if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
+    #Wait for fleet to be ready
+    while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
+    
+    #Push cluster config to ETCD
+    /var/lib/philly/tools/pcm -c /var/lib/philly/azure.yml pushcfg
+
+    #Add activeNameNode key for DNS module
+    etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
+fi
 
 exit 0
