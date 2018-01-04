@@ -258,13 +258,14 @@ fi
 
 #Applying cloud config
 coreos-cloudinit --from-file /var/lib/philly/cloud-config.yml
+sed -i "s/search /search cloudapp.net /g" /etc/resolv.conf
 
 if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
     #Wait for fleet to be ready
     while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
     
     #Push cluster config to ETCD
-    /var/lib/philly/tools/pcm -c /var/lib/philly/azure.yml pushcfg
+    /var/lib/philly/tools/pcm -e localhost -c /var/lib/philly/azure.yml pushcfg
 
     #Add activeNameNode key for DNS module
     etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
