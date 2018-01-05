@@ -64,7 +64,15 @@ function initialSetup()
 function fixHostsFile()
 {
     echo "Fixing up hosts file to include entries to other infrastructure nodes and worker nodes"
-    #fix up hosts file
+
+    localhostLine=$(grep 127.0.0.1 /etc/hosts)
+    if [[ -z $localhostLine ]];
+    then
+        echo "127.0.0.1 localhost infra" >> /etc/hosts
+    else
+        sed -i "s/$localhostLine/$localhostLine infra/g" /etc/hosts
+    fi
+    
     echo $INFRA_IP_BASE$INFRA_IP_START master >> /etc/hosts
 
     i=0
