@@ -166,8 +166,8 @@ function updateConfigFile()
 
     cp /var/lib/philly/azure.yml /var/lib/philly/azure.yml.orig
 
-    domain=$(grep search /etc/resolv.conf | awk -F" " '{print $2}')
-    sed -i "s/__DOMAIN__/$domain/g" /var/lib/philly/azure.yml
+    cluster=$(grep -m 1 "id:" /var/lib/philly/azure.yml | awk -F:" " '{print $2}')
+    sed -i "s/__DOMAIN__/$cluster.philly.selfhost.corp.microsoft.com/g" /var/lib/philly/azure.yml
     
     echo "Finished updating cloud-config.yml file"
 }
@@ -242,6 +242,28 @@ function slurmSlaveSetup()
 }
 
 
+function updateResolvConf()
+{
+    #Wait max of 2 minutes for local dns server to come up
+    maxWait=120
+    while [[ -z $(netstat -nlp 2>/dev/null | grep 127.0.0.1:53) && $maxWait -gt 0 ]];
+    do
+        sleep 2
+        ((--maxWait))
+    done
+
+    #Rewrite /etc/resolv.conf after dns is up
+    #TODO: randomize DNS nameserver
+    cluster=$(grep -m 1 "id:" /var/lib/philly/azure.yml | awk -F:" " '{print $2}')
+    azureInternalDomain=$(grep search /etc/resolv.conf | awk -F" " '{print $2}')
+    cp /etc/resolv.conf /etc.resolv.conf.philly.bak
+    echo "#Philly generated /etc/resolv.conf - back up is at /etc/resolv.conf.philly.bak" > /etc/resolv.conf
+    echo "$IP" >> /etc/resolv.conf
+    echo "search $cluster.philly.selfhost.corp.microsoft.com cloudapp.net $azureInternalDomain" >> /etc/resolv.conf
+    
+}
+
+
 #
 # Main script body
 #
@@ -258,7 +280,6 @@ fi
 
 #Applying cloud config
 coreos-cloudinit --from-file /var/lib/philly/cloud-config.yml
-sed -i "s/search /search cloudapp.net /g" /etc/resolv.conf
 
 if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
     #Wait for fleet to be ready
@@ -269,6 +290,13 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
 
     #Add activeNameNode key for DNS module
     etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
+
+    fleetctl start /var/philly/services/master/master.service
+    fleetctl start /var/philly/services/master/dns.service
+    fleetctl start /var/philly/services/master/webservice.service
+    updateResolvConf
+else
+    updateResolvConf
 fi
 
 exit 0
