@@ -258,7 +258,7 @@ function updateResolvConf()
     azureInternalDomain=$(grep search /etc/resolv.conf | awk -F" " '{print $2}')
     cp /etc/resolv.conf /etc.resolv.conf.philly.bak
     echo "#Philly generated /etc/resolv.conf - back up is at /etc/resolv.conf.philly.bak" > /etc/resolv.conf
-    echo "$IP" >> /etc/resolv.conf
+    echo "nameserver $IP" >> /etc/resolv.conf
     echo "search $cluster.philly.selfhost.corp.microsoft.com cloudapp.net $azureInternalDomain" >> /etc/resolv.conf   
 }
 
@@ -289,15 +289,15 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
 
     #Add activeNameNode key for DNS module
     etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
-
-    fleetctl start /var/lib/philly/services/docker-registry/docker-registry.service
-    sleep 10
-    fleetctl start /var/lib/philly/services/master/master.service
-    sleep 10
-    fleetctl start /var/lib/philly/services/dns/dns.service
-    updateResolvConf
-else
-    updateResolvConf
 fi
+#     fleetctl start /var/lib/philly/services/docker-registry.service
+#     sleep 10
+#     fleetctl start /var/lib/philly/services/master.service
+#     sleep 10
+#     fleetctl start /var/lib/philly/services/dns.service
+#     updateResolvConf
+# else
+#     updateResolvConf
+# fi
 
 exit 0
