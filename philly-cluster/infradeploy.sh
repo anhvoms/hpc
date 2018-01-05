@@ -291,9 +291,9 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
     #Add activeNameNode key for DNS module
     etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
 
-    fleetctl start /var/philly/services/master/master.service
-    fleetctl start /var/philly/services/master/dns.service
-    fleetctl start /var/philly/services/master/webservice.service
+    fleetctl start /var/lib/philly/services/master/master.service
+    fleetctl start /var/lib/philly/services/master/dns.service
+    fleetctl start /var/lib/philly/services/master/webservice.service
     updateResolvConf
 else
     updateResolvConf
