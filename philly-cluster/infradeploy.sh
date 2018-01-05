@@ -244,8 +244,8 @@ function slurmSlaveSetup()
 
 function updateResolvConf()
 {
-    #Wait max of 2 minutes for local dns server to come up
-    maxWait=120
+    #Wait max of 5 minutes for local dns server to come up
+    maxWait=600
     while [[ -z $(netstat -nlp 2>/dev/null | grep 127.0.0.1:53) && $maxWait -gt 0 ]];
     do
         sleep 2
@@ -259,8 +259,7 @@ function updateResolvConf()
     cp /etc/resolv.conf /etc.resolv.conf.philly.bak
     echo "#Philly generated /etc/resolv.conf - back up is at /etc/resolv.conf.philly.bak" > /etc/resolv.conf
     echo "$IP" >> /etc/resolv.conf
-    echo "search $cluster.philly.selfhost.corp.microsoft.com cloudapp.net $azureInternalDomain" >> /etc/resolv.conf
-    
+    echo "search $cluster.philly.selfhost.corp.microsoft.com cloudapp.net $azureInternalDomain" >> /etc/resolv.conf   
 }
 
 
@@ -291,9 +290,11 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
     #Add activeNameNode key for DNS module
     etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
 
+    fleetctl start /var/lib/philly/services/docker-registry/docker-registry.service
+    sleep 10
     fleetctl start /var/lib/philly/services/master/master.service
-    fleetctl start /var/lib/philly/services/master/dns.service
-    fleetctl start /var/lib/philly/services/master/webservice.service
+    sleep 10
+    fleetctl start /var/lib/philly/services/dns/dns.service
     updateResolvConf
 else
     updateResolvConf
