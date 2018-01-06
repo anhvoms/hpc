@@ -261,10 +261,15 @@ function slurmSlaveSetup()
 
 function updateResolvConf()
 {
-    while [[ -z $(netstat -nlp 2>/dev/null | grep 127.0.0.1:53) ]];
-    do
-        sleep 5
-    done
+    #worker setup is not started until infra nodes are finished setting up
+    #by that time dns from infra nodes are already up
+    if [[ $isWorker -eq 0 ]];
+    then
+        while [[ -z $(netstat -nlp 2>/dev/null | grep 127.0.0.1:53) ]];
+        do
+            sleep 5
+        done
+    fi
 
     #Rewrite /etc/resolv.conf after dns is up
     azureInternalDomain=$(grep search /etc/resolv.conf | awk -F" " '{print $2}')
@@ -316,8 +321,6 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
 
     fleetctl start $PHILLY_HOME/services/webserver.service
 else
-    if [[ $isWorker -eq 0 ]]; then
-        updateResolvConf
-    fi
+    updateResolvConf
 fi
 exit 0
