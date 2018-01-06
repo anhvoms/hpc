@@ -28,7 +28,9 @@ WORKER_IP_BASE=$9
 WORKER_IP_START=${10}
 TEMPLATE_BASE=${11}
 
+PHILLY_HOME=/var/lib/philly
 masterIndex=0
+cluster=azeast
 
 function initialSetup()
 {
@@ -46,8 +48,8 @@ function initialSetup()
     sed -i 's/^Defaults[ ]*requiretty/# Defaults requiretty/g' /etc/sudoers
     mkdir -p /home/$ADMIN_USERNAME/.ssh
     mkdir -p ~/.ssh
-    cp /var/lib/philly/bootstrap/.ssh/* /home/$ADMIN_USERNAME/.ssh
-    cp /var/lib/philly/bootstrap/.ssh/* ~/.ssh
+    cp $PHILLY_HOME/bootstrap/.ssh/* /home/$ADMIN_USERNAME/.ssh
+    cp $PHILLY_HOME/bootstrap/.ssh/* ~/.ssh
     
     chmod 700 /home/$ADMIN_USERNAME/.ssh
     chmod 400 /home/$ADMIN_USERNAME/.ssh/config
@@ -98,7 +100,7 @@ function generateMachinesYml()
 {
     echo "Generating machines.yml file to be included as part of cluster.yml"
     
-    machineYmlFile="/var/lib/philly/machines.yml"
+    machineYmlFile="$PHILLY_HOME/machines.yml"
     echo "#This file is generated automatically at provisioning" > $machineYmlFile
 
     {
@@ -153,29 +155,30 @@ function updateConfigFile()
 {
     echo "Updating cloud-config.yml file"
     
-    etcdInitialCluster=""
-    i=0
-    while [ $i -lt $INFRA_COUNT ]
-    do
-        nextip=$((i + INFRA_IP_START))
-        etcdInitialCluster="${etcdInitialCluster}${INFRA_BASE_NAME}$i=http://$INFRA_IP_BASE$nextip:7001,"
-        ((++i))
-    done
+    # etcdInitialCluster=""
+    # i=0
+    # while [ $i -lt $INFRA_COUNT ]
+    # do
+    #     nextip=$((i + INFRA_IP_START))
+    #     etcdInitialCluster="${etcdInitialCluster}${INFRA_BASE_NAME}$i=http://$INFRA_IP_BASE$nextip:7001,"
+    #     ((++i))
+    # done
 
-    #delete the trailing comma
-    etcdInitialCluster=${etcdInitialCluster%?}
+    # #delete the trailing comma
+    # etcdInitialCluster=${etcdInitialCluster%?}
     
-    #update cloud-config file
-    cp /var/lib/philly/cloud-config.yml /var/lib/philly/cloud-config.yml.orig
+    # #update cloud-config file
+    # cp $PHILLY_HOME/cloud-config.yml $PHILLY_HOME/cloud-config.yml.orig
 
-    sed -i "s/__HOSTNAME__/$NAME/g" /var/lib/philly/cloud-config.yml
-    sed -i "s/__HOSTIP__/$IP/g" /var/lib/philly/cloud-config.yml
-    sed -i "s?__ETCD_INITIAL_CLUSTER__?$etcdInitialCluster?g" /var/lib/philly/cloud-config.yml
+    # sed -i "s/__HOSTNAME__/$NAME/g" $PHILLY_HOME/cloud-config.yml
+    # sed -i "s/__HOSTIP__/$IP/g" $PHILLY_HOME/cloud-config.yml
+    # sed -i "s?__ETCD_INITIAL_CLUSTER__?$etcdInitialCluster?g" $PHILLY_HOME/cloud-config.yml
 
-    cp /var/lib/philly/azure.yml /var/lib/philly/azure.yml.orig
+    cp $PHILLY_HOME/azure.yml $PHILLY_HOME/azure.yml.orig
+    sed -i "s/__CLUSTER__/$cluster/g" $PHILLY_HOME/azure.yml
 
-    cluster=$(grep -m 1 "id:" /var/lib/philly/azure.yml | awk -F:" " '{print $2}')
-    sed -i "s/__DOMAIN__/$cluster.philly.selfhost.corp.microsoft.com/g" /var/lib/philly/azure.yml
+    cp $PHILLY_HOME/cloud-config.yml $PHILLY_HOME/cloud-config.yml.orig
+    $PHILLY_HOME/tools/generate-config -c $PHILLY_HOME/azure.yml --host $NAME -t $PHILLY_HOME/cloud-config.yml.template > $PHILLY_HOME/cloud-config.yml
     
     echo "Finished updating cloud-config.yml file"
 }
@@ -252,22 +255,16 @@ function slurmSlaveSetup()
 
 function updateResolvConf()
 {
-    #Wait max of 5 minutes for local dns server to come up
-    maxWait=600
-    while [[ -z $(netstat -nlp 2>/dev/null | grep 127.0.0.1:53) && $maxWait -gt 0 ]];
+    while [[ -z $(netstat -nlp 2>/dev/null | grep 127.0.0.1:53) ]];
     do
-        sleep 2
-        ((--maxWait))
+        sleep 5
     done
 
     #Rewrite /etc/resolv.conf after dns is up
-    #TODO: randomize DNS nameserver
-    cluster=$(grep -m 1 "id:" /var/lib/philly/azure.yml | awk -F:" " '{print $2}')
     azureInternalDomain=$(grep search /etc/resolv.conf | awk -F" " '{print $2}')
     cp /etc/resolv.conf /etc.resolv.conf.philly.bak
-    echo "#Philly generated /etc/resolv.conf - back up is at /etc/resolv.conf.philly.bak" > /etc/resolv.conf
-    echo "nameserver $IP" >> /etc/resolv.conf
-    echo "search $cluster.philly.selfhost.corp.microsoft.com cloudapp.net $azureInternalDomain" >> /etc/resolv.conf   
+    cp /etc/phillyresolv.conf /etc/resolv.conf
+    sed -i "s/search $cluster.philly.selfhost.corp.microsoft.com/search $cluster.philly.selfhost.corp.microsoft.com $azureInternalDomain/g" /etc/resolv.conf
 }
 
 
@@ -286,26 +283,28 @@ else
 fi
 
 #Applying cloud config
-coreos-cloudinit --from-file /var/lib/philly/cloud-config.yml
+coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
+
+#Wait for fleet to be ready
+while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
 
 if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
-    #Wait for fleet to be ready
-    while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
     
     #Push cluster config to ETCD
-    /var/lib/philly/tools/pcm -e localhost -c /var/lib/philly/azure.yml pushcfg
+    $PHILLY_HOME/tools/pcm -e localhost -c $PHILLY_HOME/azure.yml pushcfg
 
     #Add activeNameNode key for DNS module
     etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
+
+    for service in docker-registry master dns
+    do
+        fleetctl start $PHILLY_HOME/services/$service.service
+        while [[ -n $(fleetctl list-unit --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
+        do
+            sleep 2
+        done
+    done  
 fi
-#     fleetctl start /var/lib/philly/services/docker-registry.service
-#     sleep 10
-#     fleetctl start /var/lib/philly/services/master.service
-#     sleep 10
-#     fleetctl start /var/lib/philly/services/dns.service
-#     updateResolvConf
-# else
-#     updateResolvConf
-# fi
+updateResolvConf
 
 exit 0
