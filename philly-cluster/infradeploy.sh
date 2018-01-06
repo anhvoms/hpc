@@ -15,6 +15,9 @@ fi
 NAME=$(hostname)
 IP=$(ifconfig eth0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1')
 
+isWorker=0
+if [[ $NAME == *"worker"* ]]; then isWorker=1; fi
+
 INFRA_COUNT=$1
 ADMIN_USERNAME=$2
 ADMIN_PASSWORD=$3
@@ -67,12 +70,15 @@ function fixHostsFile()
 {
     echo "Fixing up hosts file to include entries to other infrastructure nodes and worker nodes"
 
-    localhostLine=$(grep 127.0.0.1 /etc/hosts)
-    if [[ -z $localhostLine ]];
-    then
-        echo "127.0.0.1 localhost infra" >> /etc/hosts
-    else
-        sed -i "s/$localhostLine/$localhostLine infra/g" /etc/hosts
+    if [[ $isWorker -eq 0 ]];
+    then    
+        localhostLine=$(grep 127.0.0.1 /etc/hosts)
+        if [[ -z $localhostLine ]];
+        then
+            echo "127.0.0.1 localhost infra" >> /etc/hosts
+        else
+            sed -i "s/$localhostLine/$localhostLine infra/g" /etc/hosts
+        fi
     fi
     
     echo $INFRA_IP_BASE$INFRA_IP_START master >> /etc/hosts
@@ -279,7 +285,9 @@ updateConfigFile
 if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
     slurmMasterSetup
 else
-    slurmSlaveSetup
+    if [[ $isWorker -eq 0 ]]; then
+        slurmSlaveSetup
+    fi
 fi
 
 #Applying cloud config
@@ -303,8 +311,13 @@ if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
         do
             sleep 2
         done
-    done  
-fi
-updateResolvConf
+    done
+    updateResolvConf
 
+    fleetctl start $PHILLY_HOME/services/webserver.service
+else
+    if [[ $isWorker -eq 0 ]]; then
+        updateResolvConf
+    fi
+fi
 exit 0

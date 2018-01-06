@@ -409,7 +409,7 @@
                "fileUris":[
                   "[concat(variables('templateBaseUrl'), 'workerdeploy.sh')]"
                ],
-               "commandToExecute":"[concat('bash workerdeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'))]"
+               "commandToExecute":"[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'))]"
             }
          }
       }      
