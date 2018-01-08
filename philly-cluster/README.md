@@ -1,4 +1,4 @@
-# Deploy a Slurm Cluster in Azure
+# Deploy a P Cluster in Azure
 
 Deploys a cluster with N number of infrastructure nodes and M number of worker nodes
 
