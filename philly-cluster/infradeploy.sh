@@ -279,6 +279,116 @@ function updateResolvConf()
 }
 
 
+function setupSlurm()
+{
+    if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
+        slurmMasterSetup
+    else
+        if [[ $isWorker -eq 0 ]]; then
+            slurmSlaveSetup
+        fi
+    fi
+}
+
+
+function applyCloudConfig()
+{
+    #Applying cloud config
+    coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
+
+    #Wait for fleet to be ready
+    while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
+}
+
+
+function startCoreServices()
+{
+    if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
+        
+        #Push cluster config to ETCD
+        $PHILLY_HOME/tools/pcm -e localhost -c $PHILLY_HOME/azure.yml pushcfg
+
+        #Add activeNameNode key for DNS module
+        etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
+
+        for service in docker-registry master dns
+        do
+            fleetctl start $PHILLY_HOME/services/$service.service
+            while [[ -n $(fleetctl list-unit --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
+            do
+                sleep 2
+            done
+        done
+        updateResolvConf
+
+        fleetctl start $PHILLY_HOME/services/webserver.service
+    else
+        updateResolvConf
+    fi
+}
+
+
+function startHadoopServices()
+{  
+    if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
+        for service in zookeeper hadoop-journal-node hadoop-name-node hadoop-data-node hadoop-resource-manager hadoop-node-manager
+        do
+            fleetctl start $PHILLY_HOME/services/$service.service
+            while [[ -n $(fleetctl list-unit --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
+            do
+                sleep 2
+            done           
+        done
+        /opt/bin/hdfs mkdir -p hdfs://hnn:8020/sys/runtimes
+    fi
+}
+
+
+function startOtherServices()
+{
+    etcdctl mkdir stateMachine
+    etcdctl mkdir resources/gpu
+    etcdctl mkdir resources/port
+    etcdctl mkdir resources/portRangeStart
+    etcdctl mkdir viz/requests
+    etcdctl mkdir viz/contracts
+    
+    i=0
+    while [ $i -lt $INFRA_COUNT ]
+    do
+        nextip=$((i + INFRA_IP_START))
+        etcdctl mkdir stateMachine/$INFRA_BASE_NAME$i
+        etcdctl mk stateMachine/$INFRA_BASE_NAME$i/currentState UP
+        etcdctl mk stateMachine/$INFRA_BASE_NAME$i/goalState UP
+
+        etcdctl mkdir resources/gpu/$INFRA_IP_BASE$nextip
+        etcdctl mkdir resources/port/$INFRA_IP_BASE$nextip
+        etcdctl mkdir resources/portRangeStart/$INFRA_IP_BASE$nextip
+        ((++i))
+    done
+
+    i=0
+    while [ $i -lt $WORKER_COUNT ]
+    do
+        nextip=$((i + INFRA_IP_START))
+        etcdctl mkdir stateMachine/$WORKER_BASE_NAME$i
+        etcdctl mk stateMachine/$WORKER_BASE_NAME$i/currentState UP
+        etcdctl mk stateMachine/$WORKER_BASE_NAME$i/goalState UP
+
+        etcdctl mkdir resources/gpu/$WORKER_IP_BASE$nextip
+        etcdctl mkdir resources/port/$WORKER_IP_BASE$nextip
+        etcdctl mkdir resources/portRangeStart/$WORKER_IP_BASE$nextip       
+        ((++i))
+    done
+
+    if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
+        fleetctl start $PHILLY_HOME/services/ganglia-client
+        sleep 10
+        
+    fi
+}
+
+
 #
 # Main script body
 #
@@ -286,41 +396,10 @@ initialSetup
 fixHostsFile
 generateMachinesYml
 updateConfigFile
+setupSlurm
+applyCloudConfig
+startCoreServices
+startHadoopServices
+startOtherServices
 
-if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
-    slurmMasterSetup
-else
-    if [[ $isWorker -eq 0 ]]; then
-        slurmSlaveSetup
-    fi
-fi
-
-#Applying cloud config
-coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
-
-#Wait for fleet to be ready
-while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
-
-if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
-    
-    #Push cluster config to ETCD
-    $PHILLY_HOME/tools/pcm -e localhost -c $PHILLY_HOME/azure.yml pushcfg
-
-    #Add activeNameNode key for DNS module
-    etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
-
-    for service in docker-registry master dns
-    do
-        fleetctl start $PHILLY_HOME/services/$service.service
-        while [[ -n $(fleetctl list-unit --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
-        do
-            sleep 2
-        done
-    done
-    updateResolvConf
-
-    fleetctl start $PHILLY_HOME/services/webserver.service
-else
-    updateResolvConf
-fi
 exit 0
