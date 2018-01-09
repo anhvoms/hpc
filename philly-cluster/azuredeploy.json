@@ -56,7 +56,7 @@
       },    
       "workerNodeSize":{
          "type":"string",
-         "defaultValue":"Standard_DS12_v2",
+         "defaultValue":"Standard_NC6",
          "allowedValues":[
             "Standard_A9",
             "Standard_DS11",
@@ -83,6 +83,8 @@
             "Standard_H16m",
             "Standard_H16mr",
             "Standard_H16r",
+            "Standard_NC6",
+            "Standard_NC12",
             "Standard_NC12",
             "Standard_NC24",
             "Standard_NC24r"

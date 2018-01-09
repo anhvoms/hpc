@@ -346,46 +346,46 @@ function startHadoopServices()
 
 function startOtherServices()
 {
-    etcdctl mkdir stateMachine
-    etcdctl mkdir resources/gpu
-    etcdctl mkdir resources/port
-    etcdctl mkdir resources/portRangeStart
-    etcdctl mkdir viz/requests
-    etcdctl mkdir viz/contracts
-    
-    i=0
-    while [ $i -lt $INFRA_COUNT ]
-    do
-        nextip=$((i + INFRA_IP_START))
-        etcdctl mkdir stateMachine/$INFRA_BASE_NAME$i
-        etcdctl mk stateMachine/$INFRA_BASE_NAME$i/currentState UP
-        etcdctl mk stateMachine/$INFRA_BASE_NAME$i/goalState UP
-
-        etcdctl mkdir resources/gpu/$INFRA_IP_BASE$nextip
-        etcdctl mkdir resources/port/$INFRA_IP_BASE$nextip
-        etcdctl mkdir resources/portRangeStart/$INFRA_IP_BASE$nextip
-        ((++i))
-    done
-
-    i=0
-    while [ $i -lt $WORKER_COUNT ]
-    do
-        nextip=$((i + INFRA_IP_START))
-        etcdctl mkdir stateMachine/$WORKER_BASE_NAME$i
-        etcdctl mk stateMachine/$WORKER_BASE_NAME$i/currentState UP
-        etcdctl mk stateMachine/$WORKER_BASE_NAME$i/goalState UP
-
-        etcdctl mkdir resources/gpu/$WORKER_IP_BASE$nextip
-        etcdctl mkdir resources/port/$WORKER_IP_BASE$nextip
-        etcdctl mkdir resources/portRangeStart/$WORKER_IP_BASE$nextip       
-        ((++i))
-    done
-
     if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
+        etcdctl mkdir stateMachine
+        etcdctl mkdir resources/gpu
+        etcdctl mkdir resources/port
+        etcdctl mkdir resources/portRangeStart
+        etcdctl mkdir viz/requests
+        etcdctl mkdir viz/contracts
+        
+        i=0
+        while [ $i -lt $INFRA_COUNT ]
+        do
+            nextip=$((i + INFRA_IP_START))
+            etcdctl mkdir stateMachine/$INFRA_BASE_NAME$i
+            etcdctl mk stateMachine/$INFRA_BASE_NAME$i/currentState UP
+            etcdctl mk stateMachine/$INFRA_BASE_NAME$i/goalState UP
+
+            etcdctl mkdir resources/gpu/$INFRA_IP_BASE$nextip
+            etcdctl mkdir resources/port/$INFRA_IP_BASE$nextip
+            etcdctl mkdir resources/portRangeStart/$INFRA_IP_BASE$nextip
+            ((++i))
+        done
+
+        i=0
+        while [ $i -lt $WORKER_COUNT ]
+        do
+            nextip=$((i + INFRA_IP_START))
+            etcdctl mkdir stateMachine/$WORKER_BASE_NAME$i
+            etcdctl mk stateMachine/$WORKER_BASE_NAME$i/currentState UP
+            etcdctl mk stateMachine/$WORKER_BASE_NAME$i/goalState UP
+
+            etcdctl mkdir resources/gpu/$WORKER_IP_BASE$nextip
+            etcdctl mkdir resources/port/$WORKER_IP_BASE$nextip
+            etcdctl mkdir resources/portRangeStart/$WORKER_IP_BASE$nextip       
+            ((++i))
+        done
+
         fleetctl start $PHILLY_HOME/services/ganglia-client
         sleep 10
-        
     fi
+    
 }
 
 
