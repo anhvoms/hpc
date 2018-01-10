@@ -7,7 +7,7 @@ fi
 
 echo "Script arguments: $*"
 
-if [ $# != 11 ]; then
+if [ $# != 14 ]; then
     echo "Usage: $0 <InfraNodeCount> <AdminUserName> <AdminUserPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerNodeCount> <WorkerIpBase> <WorkerIpStart> <TemplateBaseUrl> <HeadNodeSKU> <WorkerNodeSKU> <ClusterYml>"
     exit 1
 fi
