@@ -34,10 +34,10 @@
             "Standard_NC12",
             "Standard_NC24",
             "Standard_NC24r",
-            "Standard_NC6_v2",
-            "Standard_NC12_v2",
-            "Standard_NC24_v2",
-            "Standard_NC24r_v2"
+            "Standard_NC6s_v2",
+            "Standard_NC12s_v2",
+            "Standard_NC24s_v2",
+            "Standard_NC24rs_v2"
          ],
          "metadata":{
             "description":"Size of the head node."
@@ -63,10 +63,10 @@
             "Standard_NC12",
             "Standard_NC24",
             "Standard_NC24r",
-            "Standard_NC6_v2",
-            "Standard_NC12_v2",
-            "Standard_NC24_v2",
-            "Standard_NC24r_v2"
+            "Standard_NC6s_v2",
+            "Standard_NC12s_v2",
+            "Standard_NC24s_v2",
+            "Standard_NC24rs_v2"
          ],
          "metadata":{
             "description":"Size of the worker nodes."
