@@ -19,8 +19,6 @@
          "type":"string",
          "defaultValue":"Standard_DS12_v2",
          "allowedValues":[
-            "Standard_A9",
-            "Standard_D11_v2",
             "Standard_D12_v2",
             "Standard_D13_v2",
             "Standard_D14_v2",
@@ -31,17 +29,7 @@
             "Standard_DS4_v2",
             "Standard_DS5_v2",
             "Standard_DS11_v2",
-            "Standard_DS12_v2",
-            "Standard_DS13_v2",
-            "Standard_DS14_v2",
-            "Standard_DS15_v2",
-            "Standard_H16",
-            "Standard_H16m",
-            "Standard_H16mr",
-            "Standard_H16r",
-            "Standard_NC12",
-            "Standard_NC24",
-            "Standard_NC24r"
+            "Standard_DS12_v2"
          ],
          "metadata":{
             "description":"Size of the head node."
@@ -58,33 +46,12 @@
          "type":"string",
          "defaultValue":"Standard_NC6",
          "allowedValues":[
-            "Standard_A9",
-            "Standard_DS11",
-            "Standard_DS12",
-            "Standard_DS13",
-            "Standard_DS14",
-            "Standard_D11_v2",
             "Standard_D12_v2",
             "Standard_D13_v2",
             "Standard_D14_v2",
             "Standard_D15_v2",
-            "Standard_DS1_v2",
-            "Standard_DS2_v2",
-            "Standard_DS3_v2",
-            "Standard_DS4_v2",
-            "Standard_DS5_v2",
-            "Standard_DS11_v2",
             "Standard_DS12_v2",
-            "Standard_DS13_v2",
-            "Standard_DS14_v2",
-            "Standard_DS15_v2",
-            "Standard_H16",
-            "Standard_H8m",
-            "Standard_H16m",
-            "Standard_H16mr",
-            "Standard_H16r",
             "Standard_NC6",
-            "Standard_NC12",
             "Standard_NC12",
             "Standard_NC24",
             "Standard_NC24r"
@@ -105,6 +72,13 @@
         "defaultValue":"provide_your_image_id_string",
         "metadata":{
             "description":"Image to use for all instances of the infrastructure nodes."
+        }
+      },
+      "clusterYml":{
+        "type":"string",
+        "defaultValue":"none",
+        "metadata":{
+          "description":"Provide a link to your cluster yml file."                          
         }
       }
    },
@@ -317,7 +291,7 @@
                "fileUris":[
                   "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
                ],
-               "commandToExecute":"[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'))]"
+               "commandToExecute":"[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('clusterYml'))]"
             }
          }
       },
@@ -411,7 +385,7 @@
                "fileUris":[
                   "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
                ],
-               "commandToExecute":"[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'))]"
+               "commandToExecute":"[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('clusteryml'))]"
             }
          }
       }      

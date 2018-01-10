@@ -8,7 +8,7 @@ fi
 echo "Script arguments: $*"
 
 if [ $# != 11 ]; then
-    echo "Usage: $0 <InfraNodeCount> <AdminUserName> <AdminUserPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerNodeCount> <WorkerIpBase> <WorkerIpStart> <TemplateBaseUrl>"
+    echo "Usage: $0 <InfraNodeCount> <AdminUserName> <AdminUserPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerNodeCount> <WorkerIpBase> <WorkerIpStart> <TemplateBaseUrl> <HeadNodeSKU> <WorkerNodeSKU> <ClusterYml>"
     exit 1
 fi
 
@@ -30,6 +30,9 @@ WORKER_COUNT=$8
 WORKER_IP_BASE=$9
 WORKER_IP_START=${10}
 TEMPLATE_BASE=${11}
+HEADNODE_SKU=${12}
+WORKERNODE_SKU=${13}
+CLUSTERYML=${14}
 
 PHILLY_HOME=/var/lib/philly
 masterIndex=0
@@ -115,7 +118,7 @@ function generateMachinesYml()
     do              
         nextip=$((i + INFRA_IP_START))
         echo "    $INFRA_BASE_NAME$i:" 
-        echo "      sku: standard-d4s-v3" 
+        echo "      sku: $HEADNODE_SKU" 
         echo "      rack: rack0"  
         echo "      rackLocation: 1" 
         echo "      outlet: 1.0" 
@@ -141,7 +144,7 @@ function generateMachinesYml()
     do
         nextip=$((i + WORKER_IP_START))
         echo "    $WORKER_BASE_NAME$i:" 
-        echo "      sku: standard-nc6" 
+        echo "      sku: $WORKERNODE_SKU" 
         echo "      rack: rack0" 
         echo "      rackLocation: 1" 
         echo "      outlet: 1.0" 
@@ -181,7 +184,12 @@ function updateConfigFile()
     # sed -i "s?__ETCD_INITIAL_CLUSTER__?$etcdInitialCluster?g" $PHILLY_HOME/cloud-config.yml
 
     cp $PHILLY_HOME/azure.yml $PHILLY_HOME/azure.yml.orig
-    sed -i "s/__CLUSTER__/$cluster/g" $PHILLY_HOME/azure.yml
+    if [[ "$CLUSTERYML" -eq "none" ]] ; then
+        sed -i "s/__CLUSTER__/$cluster/g" $PHILLY_HOME/azure.yml
+    else
+        wget $CLUSTERYML -O $PHILLY_HOME/azure.yml
+        cluster=$(grep -m 1 "id: " gcr.yml | awk -F" " '{print $2}')
+    fi
 
     cp $PHILLY_HOME/cloud-config.yml $PHILLY_HOME/cloud-config.yml.orig
     $PHILLY_HOME/tools/generate-config -c $PHILLY_HOME/azure.yml --host $NAME -t $PHILLY_HOME/cloud-config.yml.template > $PHILLY_HOME/cloud-config.yml
