@@ -112,6 +112,12 @@ function generateMachinesYml()
     machineYmlFile="$PHILLY_HOME/machines.yml"
     echo "#This file is generated automatically at provisioning" > $machineYmlFile
 
+    #need to convert the Azure sku string to what philly likes
+    HEADNODE_SKU=${HEADNODE_SKU,,} #switch to lowercase
+    HEADNODE_SKU=${HEADNODE_SKU//_/-} #change dash into underscore
+    WORKERNODE_SKU=${WORKERNODE_SKU,,} #switch to lowercase
+    WORKERNODE_SKU=${WORKERNODE_SKU//_/-} #change dash into underscore
+    
     {
     i=0
     while [ $i -lt $INFRA_COUNT ]
