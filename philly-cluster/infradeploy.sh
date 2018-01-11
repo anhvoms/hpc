@@ -346,7 +346,7 @@ function setupSlurm()
     if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
         slurmMasterSetup
     else
-        if [[ $isWorker -eq 0 ]]; then
+        if [[ $isInfra -eq 1 ]]; then
             slurmSlaveSetup
         fi
     fi
