@@ -570,8 +570,8 @@
         "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]"
       ],
       "copy": {
-        "name": "workerNetworkCopy",
-        "count": "[parameters('workerNodeCount')]"
+        "name": "auxNetworkCopy",
+        "count": "[parameters('auxNodeCount')]"
       },
       "properties": {
         "ipConfigurations": [
@@ -579,7 +579,7 @@
             "name": "ipconfig1",
             "properties": {
               "privateIPAllocationMethod": "Static",
-              "privateIPAddress": "[concat(variables('networkSettings').statics.workerRange.base, copyindex(variables('networkSettings').statics.workerRange.start))]",
+              "privateIPAddress": "[concat(variables('networkSettings').statics.auxRange.base, copyindex(variables('networkSettings').statics.auxRange.start))]",
               "subnet": {
                 "id": "[variables('subnetRef')]"
               }
