@@ -17,7 +17,7 @@
     },
     "headNodeSize": {
       "type": "string",
-      "defaultValue": "Standard_DS12_v2",
+      "defaultValue": "Standard_D12",
       "allowedValues": [
         "Standard_D12",
         "Standard_D12_v2",
@@ -41,19 +41,19 @@
         "Standard_NC24rs_v2"
       ],
       "metadata": {
-        "description": "Size of the head node."
+        "description": "Size of the infrastructure node."
       }
     },
     "infraNodeCount": {
       "type": "int",
       "defaultValue": 5,
       "metadata": {
-        "description": "This template creates N infra node. Use infraNodeCount to specify that N."
+        "description": "Specify the number of infrastructure nodes"
       }
     },
     "workerNodeSize": {
       "type": "string",
-      "defaultValue": "Standard_NC6",
+      "defaultValue": "Standard_NC24rs_v2",
       "allowedValues": [
         "Standard_D12",
         "Standard_D12_v2",
@@ -78,7 +78,37 @@
       "type": "int",
       "defaultValue": 2,
       "metadata": {
-        "description": "This template creates N worker node. Use workerNodeCount to specify that N."
+        "description": "Specify the number of worker nodes."
+      }
+    },
+    "auxNodeSize": {
+      "type": "string",
+      "defaultValue": "Standard_D12",
+      "allowedValues": [
+        "Standard_D12",
+        "Standard_D12_v2",
+        "Standard_D13_v2",
+        "Standard_D14_v2",
+        "Standard_D15_v2",
+        "Standard_DS12_v2",
+        "Standard_NC6",
+        "Standard_NC12",
+        "Standard_NC24",
+        "Standard_NC24r",
+        "Standard_NC6s_v2",
+        "Standard_NC12s_v2",
+        "Standard_NC24s_v2",
+        "Standard_NC24rs_v2"
+      ],
+      "metadata": {
+        "description": "Size of the auxiliary nodes."
+      }
+    },
+    "auxNodeCount": {
+      "type": "int",
+      "defaultValue": 2,
+      "metadata": {
+        "description": "Specify the number of auxiliary nodes."
       }
     },
     "OSImage": {
@@ -108,6 +138,7 @@
     "publicIPAddressName": "publicips",
     "infraVMName": "pinfra",
     "workerVMName": "pworker",
+    "auxVMName": "paux",
     "armApiVersion": "2015-06-15",
     "computeApiVersion": "2016-04-30-preview",
     "avSetName": "avSet",
@@ -118,7 +149,7 @@
       "subnet": {
         "dse": {
           "name": "dse",
-          "prefix": "10.0.0.0/24",
+          "prefix": "10.0.0.0/22",
           "vnet": "virtualnetwork"
         }
       },
@@ -126,6 +157,10 @@
         "workerRange": {
           "base": "10.0.0.",
           "start": 5
+        },
+        "auxRange": {
+          "base": "10.0.0.",
+          "start": 250
         },
         "infraRange": {
           "base": "10.0.0.",
@@ -426,7 +461,7 @@
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
           ],
-          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('clusterYml'))]"
+          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'))]"
         }
       }
     },
@@ -506,7 +541,7 @@
       "name": "[concat(variables('workerVMName'), copyindex(), '/Installation')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "infraExtCopy",
+        "auxExtCopy",
         "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), copyindex())]"
       ],
       "copy": {
@@ -521,9 +556,104 @@
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
           ],
-          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('clusteryml'))]"
+          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'))]"
         }
       }
-    }
+    },
+    {
+      "apiVersion": "[variables('armApiVersion')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(variables('nicName'), 'worker', copyindex())]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]"
+      ],
+      "copy": {
+        "name": "workerNetworkCopy",
+        "count": "[parameters('workerNodeCount')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat(variables('networkSettings').statics.workerRange.base, copyindex(variables('networkSettings').statics.workerRange.start))]",
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('computeApiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(variables('auxVMName'), copyindex())]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'aux', copyindex())]",
+        "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
+      ],
+      "copy": {
+        "name": "auxVMCopy",
+        "count": "[parameters('auxNodeCount')]"
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('auxNodeSize')]"
+        },
+        "osProfile": {
+          "computername": "[concat(variables('auxVMName'), copyindex())]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('OSImage')]"
+          },
+          "osDisk": {
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'aux', copyindex()))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "[variables('computeApiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('auxVMName'), copyindex(), '/Installation')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "infraExtCopy",
+        "[concat('Microsoft.Compute/virtualMachines/', variables('auxVMName'), copyindex())]"
+      ],
+      "copy": {
+        "name": "auxExtCopy",
+        "count": "[parameters('auxNodeCount')]"
+      },
+      "properties": {
+        "publisher": "Microsoft.OSTCExtensions",
+        "type": "CustomScriptForLinux",
+        "typeHandlerVersion": "1.3",
+        "settings": {
+          "fileUris": [
+            "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
+          ],
+          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'))]"
+        }
+      }
+    }    
   ]
 }

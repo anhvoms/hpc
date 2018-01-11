@@ -7,8 +7,8 @@ fi
 
 echo "Script arguments: $*"
 
-if [ $# != 14 ]; then
-    echo "Usage: $0 <InfraNodeCount> <AdminUserName> <AdminUserPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerNodeCount> <WorkerIpBase> <WorkerIpStart> <TemplateBaseUrl> <HeadNodeSKU> <WorkerNodeSKU> <ClusterYml>"
+if [ $# != 19 ]; then
+    echo "Usage: $0 <InfraCount> <AdminUserName> <AdminPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerCount> <WorkerIpBase> <WorkerIpStart> <AuxBaseName> <AuxNodeCount> <AuxIpBase> <AuxIpStart> <TemplateBaseUrl> <InfraSKU> <WorkerSKU> <AuxSKU> <ClusterYmlUrl>"
     exit 1
 fi
 
@@ -29,10 +29,17 @@ WORKER_BASE_NAME=$7
 WORKER_COUNT=$8
 WORKER_IP_BASE=$9
 WORKER_IP_START=${10}
-TEMPLATE_BASE=${11}
-HEADNODE_SKU=${12}
-WORKERNODE_SKU=${13}
-CLUSTERYML=${14}
+
+AUX_BASE_NAME=${11}
+AUX_COUNT=${12}
+AUX_IP_BASE=${13}
+AUX_IP_START=${14}
+
+TEMPLATE_BASE=${15}
+HEADNODE_SKU=${16}
+WORKERNODE_SKU=${17}
+AUXNODE_SKU=${18}
+CLUSTERYML=${19}
 
 PHILLY_HOME=/var/lib/philly
 masterIndex=0
@@ -95,6 +102,14 @@ function fixHostsFile()
     done
 
     i=0
+    while [ $i -lt $AUX_COUNT ]
+    do
+        nextip=$((i + AUX_IP_START))
+        echo $AUX_IP_BASE$nextip $AUX_BASE_NAME$i >> /etc/hosts
+        ((++i))
+    done
+
+    i=0
     while [ $i -lt $WORKER_COUNT ]
     do
         nextip=$((i + WORKER_IP_START))
@@ -117,6 +132,8 @@ function generateMachinesYml()
     HEADNODE_SKU=${HEADNODE_SKU//_/-} #change dash into underscore
     WORKERNODE_SKU=${WORKERNODE_SKU,,} #switch to lowercase
     WORKERNODE_SKU=${WORKERNODE_SKU//_/-} #change dash into underscore
+    AUXNODE_SKU=${AUXNODE_SKU,,} #switch to lowercase
+    AUXNODE_SKU=${AUXNODE_SKU//_/-} #change dash into underscore
     
     {
     i=0
@@ -144,6 +161,30 @@ function generateMachinesYml()
         echo "      os: prod-infra" 
         ((++i))
     done
+
+    i=0
+    while [ $i -lt $AUX_COUNT ]
+    do              
+        nextip=$((i + AUX_IP_START))
+        echo "    $AUX_BASE_NAME$i:" 
+        echo "      sku: $AUXNODE_SKU" 
+        echo "      rack: rack0"  
+        echo "      rackLocation: 1" 
+        echo "      outlet: 1.0"
+        if [[ $i -eq 0 ]]
+        then
+            echo "      role: nfs" 
+        elif [[ $i -eq 1 ]]
+        then
+            echo "      role: ganglia-master" 
+        else
+            echo "      role: auxiliary" 
+        fi
+        echo "      mac: 00:00:00:00:00:00" 
+        echo "      ip: $AUX_IP_BASE$nextip" 
+        echo "      os: prod-infra" 
+        ((++i))
+    done
       
     i=0
     while [ $i -lt $WORKER_COUNT ]
@@ -151,7 +192,7 @@ function generateMachinesYml()
         nextip=$((i + WORKER_IP_START))
         echo "    $WORKER_BASE_NAME$i:" 
         echo "      sku: $WORKERNODE_SKU" 
-        echo "      rack: rack0" 
+        echo "      rack: rack1" 
         echo "      rackLocation: 1" 
         echo "      outlet: 1.0" 
         echo "      role: worker" 
@@ -190,7 +231,7 @@ function updateConfigFile()
     # sed -i "s?__ETCD_INITIAL_CLUSTER__?$etcdInitialCluster?g" $PHILLY_HOME/cloud-config.yml
 
     cp $PHILLY_HOME/azure.yml $PHILLY_HOME/azure.yml.orig
-    if [[ "$CLUSTERYML" -eq "none" ]] ; then
+    if [[ "$CLUSTERYML" == "none" ]] ; then
         sed -i "s/__CLUSTER__/$cluster/g" $PHILLY_HOME/azure.yml
     else
         wget $CLUSTERYML -O $PHILLY_HOME/azure.yml
@@ -290,6 +331,9 @@ function updateResolvConf()
     cp /etc/resolv.conf /etc.resolv.conf.philly.bak
     cp /etc/phillyresolv.conf /etc/resolv.conf
     sed -i "s/search $cluster.philly.selfhost.corp.microsoft.com/search $cluster.philly.selfhost.corp.microsoft.com $azureInternalDomain/g" /etc/resolv.conf
+
+    #at this point dns is up, so we remove the infra entry from hosts file
+    sed -i "s/127.0.0.1 localhost infra//g" /etc/hosts
 }
 
 
@@ -312,6 +356,11 @@ function applyCloudConfig()
 
     #Wait for fleet to be ready
     while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
+    mkdir -p /var/lib/coreos-install/user_data
+    cp $PHILLY_HOME/cloud-config.yml /var/lib/coreos-install/user_data
+
+    sed -i "s/exit 0//g" /etc/rc.local
+    echo "coreos-cloudinit --from-file /var/lib/coreos-install/user_data/cloud-config.yml" >> /etc/rc.local
 }
 
 
@@ -383,6 +432,20 @@ function startOtherServices()
         done
 
         i=0
+        while [ $i -lt $AUX_COUNT ]
+        do
+            nextip=$((i + AUX_IP_START))
+            etcdctl mkdir stateMachine/$AUX_BASE_NAME$i
+            etcdctl mk stateMachine/$AUX_BASE_NAME$i/currentState UP
+            etcdctl mk stateMachine/$AUX_BASE_NAME$i/goalState UP
+
+            etcdctl mkdir resources/gpu/$AUX_IP_BASE$nextip
+            etcdctl mkdir resources/port/$AUX_IP_BASE$nextip
+            etcdctl mkdir resources/portRangeStart/$AUX_IP_BASE$nextip
+            ((++i))
+        done
+
+        i=0
         while [ $i -lt $WORKER_COUNT ]
         do
             nextip=$((i + INFRA_IP_START))
@@ -403,6 +466,18 @@ function startOtherServices()
 }
 
 
+function enableRDMA()
+{
+    if [[ $isWorker -eq 1 && "$WORKERNODE_SKU" == "standard-nc24rs-v2" ]];
+    then
+        {
+            echo "#Enable RDMA"
+            echo "OS.EnableRDMA=y"
+            echo "OS.UpdateRdmaDriver=y"
+        } >> /etc/waagent.conf
+    fi
+}
+
 #
 # Main script body
 #
@@ -415,5 +490,5 @@ applyCloudConfig
 startCoreServices
 startHadoopServices
 startOtherServices
-
+enableRDMA
 exit 0
