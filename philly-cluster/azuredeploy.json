@@ -563,7 +563,7 @@
     {
       "apiVersion": "[variables('armApiVersion')]",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('nicName'), 'worker', copyindex())]",
+      "name": "[concat(variables('nicName'), 'aux', copyindex())]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
