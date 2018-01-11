@@ -1,405 +1,529 @@
 {
-   "$schema":"https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-   "contentVersion":"1.0.0.0",
-   "parameters":{
-      "adminUserName":{
-         "type":"string",
-         "defaultValue":"philly",
-         "metadata":{
-            "description":"User name for the Virtual Machine. Pick a valid username otherwise there will be a BadRequest error."
-         }
-      },
-      "adminPassword":{
-         "type":"securestring",
-         "metadata":{
-            "description":"Admin password. Pick a complex password with uppercase letters, lowercase letters, digits, and symbols. The password should not be longer than 16. Otherwise you'll get a BadRequest error."
-         }
-      },
-      "headNodeSize":{
-         "type":"string",
-         "defaultValue":"Standard_DS12_v2",
-         "allowedValues":[
-            "Standard_D12_v2",
-            "Standard_D13_v2",
-            "Standard_D14_v2",
-            "Standard_D15_v2",
-            "Standard_DS1_v2",
-            "Standard_DS2_v2",
-            "Standard_DS3_v2",
-            "Standard_DS4_v2",
-            "Standard_DS5_v2",
-            "Standard_DS11_v2",
-            "Standard_DS12_v2",
-            "Standard_NC6",
-            "Standard_NC12",
-            "Standard_NC24",
-            "Standard_NC24r",
-            "Standard_NC6s_v2",
-            "Standard_NC12s_v2",
-            "Standard_NC24s_v2",
-            "Standard_NC24rs_v2"
-         ],
-         "metadata":{
-            "description":"Size of the head node."
-         }
-      },
-      "infraNodeCount":{
-         "type":"int",
-         "defaultValue":5,
-         "metadata":{
-            "description":"This template creates N infra node. Use infraNodeCount to specify that N."
-         }
-      },    
-      "workerNodeSize":{
-         "type":"string",
-         "defaultValue":"Standard_NC6",
-         "allowedValues":[
-            "Standard_D12_v2",
-            "Standard_D13_v2",
-            "Standard_D14_v2",
-            "Standard_D15_v2",
-            "Standard_DS12_v2",
-            "Standard_NC6",
-            "Standard_NC12",
-            "Standard_NC24",
-            "Standard_NC24r",
-            "Standard_NC6s_v2",
-            "Standard_NC12s_v2",
-            "Standard_NC24s_v2",
-            "Standard_NC24rs_v2"
-         ],
-         "metadata":{
-            "description":"Size of the worker nodes."
-         }
-      },
-      "workerNodeCount":{
-         "type":"int",
-         "defaultValue":2,
-         "metadata":{
-            "description":"This template creates N worker node. Use workerNodeCount to specify that N."
-         }
-      },
-      "OSImage":{
-        "type":"string",
-        "defaultValue":"provide_your_image_id_string",
-        "metadata":{
-            "description":"Image to use for all instances of the infrastructure nodes."
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUserName": {
+      "type": "string",
+      "defaultValue": "philly",
+      "metadata": {
+        "description": "User name for the Virtual Machine. Pick a valid username otherwise there will be a BadRequest error."
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Admin password. Pick a complex password with uppercase letters, lowercase letters, digits, and symbols. The password should not be longer than 16. Otherwise you'll get a BadRequest error."
+      }
+    },
+    "headNodeSize": {
+      "type": "string",
+      "defaultValue": "Standard_DS12_v2",
+      "allowedValues": [
+        "Standard_D12",
+        "Standard_D12_v2",
+        "Standard_D13_v2",
+        "Standard_D14_v2",
+        "Standard_D15_v2",
+        "Standard_DS1_v2",
+        "Standard_DS2_v2",
+        "Standard_DS3_v2",
+        "Standard_DS4_v2",
+        "Standard_DS5_v2",
+        "Standard_DS11_v2",
+        "Standard_DS12_v2",
+        "Standard_NC6",
+        "Standard_NC12",
+        "Standard_NC24",
+        "Standard_NC24r",
+        "Standard_NC6s_v2",
+        "Standard_NC12s_v2",
+        "Standard_NC24s_v2",
+        "Standard_NC24rs_v2"
+      ],
+      "metadata": {
+        "description": "Size of the head node."
+      }
+    },
+    "infraNodeCount": {
+      "type": "int",
+      "defaultValue": 5,
+      "metadata": {
+        "description": "This template creates N infra node. Use infraNodeCount to specify that N."
+      }
+    },
+    "workerNodeSize": {
+      "type": "string",
+      "defaultValue": "Standard_NC6",
+      "allowedValues": [
+        "Standard_D12",
+        "Standard_D12_v2",
+        "Standard_D13_v2",
+        "Standard_D14_v2",
+        "Standard_D15_v2",
+        "Standard_DS12_v2",
+        "Standard_NC6",
+        "Standard_NC12",
+        "Standard_NC24",
+        "Standard_NC24r",
+        "Standard_NC6s_v2",
+        "Standard_NC12s_v2",
+        "Standard_NC24s_v2",
+        "Standard_NC24rs_v2"
+      ],
+      "metadata": {
+        "description": "Size of the worker nodes."
+      }
+    },
+    "workerNodeCount": {
+      "type": "int",
+      "defaultValue": 2,
+      "metadata": {
+        "description": "This template creates N worker node. Use workerNodeCount to specify that N."
+      }
+    },
+    "OSImage": {
+      "type": "string",
+      "defaultValue": "provide_your_image_id_string",
+      "metadata": {
+        "description": "Image to use for all instances of the infrastructure nodes."
+      }
+    },
+    "clusterYml": {
+      "type": "string",
+      "defaultValue": "none",
+      "metadata": {
+        "description": "Provide a link to your cluster yml file."
+      }
+    }
+  },
+  "variables": {
+    "newStorageAccountName": "[concat(uniqueString(resourceGroup().id), 'sa')]",
+    "storageAccountName1": "[concat(uniqueString('1', resourceGroup().id), 'sa')]",
+    "storageAccountName2": "[concat(uniqueString('2', resourceGroup().id), 'sa')]",
+    "storageAccountName3": "[concat(uniqueString('3', resourceGroup().id), 'sa')]",
+    "storageAccountName4": "[concat(uniqueString('4', resourceGroup().id), 'sa')]",
+    "vmStorageAccountContainerName": "vhd",
+    "OSDiskName": "osdisk",
+    "publicIPAddressType": "Dynamic",
+    "publicIPAddressName": "publicips",
+    "infraVMName": "pinfra",
+    "workerVMName": "pworker",
+    "armApiVersion": "2015-06-15",
+    "computeApiVersion": "2016-04-30-preview",
+    "avSetName": "avSet",
+    "nicName": "nic",
+    "networkSettings": {
+      "virtualNetworkName": "virtualnetwork",
+      "addressPrefix": "10.0.0.0/16",
+      "subnet": {
+        "dse": {
+          "name": "dse",
+          "prefix": "10.0.0.0/24",
+          "vnet": "virtualnetwork"
         }
       },
-      "clusterYml":{
-        "type":"string",
-        "defaultValue":"none",
-        "metadata":{
-          "description":"Provide a link to your cluster yml file."                          
+      "statics": {
+        "workerRange": {
+          "base": "10.0.0.",
+          "start": 5
+        },
+        "infraRange": {
+          "base": "10.0.0.",
+          "start": 240
+        },
+        "lbIP": "10.0.0.4"
+      }
+    },
+    "loadBalancerName":"masterlb",
+    "lbID": "[resourceId('Microsoft.Network/loadBalancers',variables('loadBalancerName'))]",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('networkSettings').virtualNetworkName)]",
+    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.dse.name)]",
+    "templateBaseUrl": "https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[variables('avSetName')]",
+      "apiVersion": "[variables('computeApiVersion')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "platformFaultDomainCount": "2",
+        "platformUpdateDomainCount": "2",
+        "managed": "true"
+      }
+    },
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Network/loadBalancers",
+      "name": "[variables('loadBalancerName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]"
+      ],
+      "properties": {
+        "frontendIPConfigurations": [
+          {
+            "properties": {
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              },
+              "privateIPAddress": "[variables('networkSettings').statics.lbIP]",
+              "privateIPAllocationMethod": "Static"
+            },
+            "name": "LoadBalancerFrontend"
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "BackendPool1"
+          }
+        ],
+        "loadBalancingRules": [
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/BackendPool1')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/httpprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 80,
+              "backendPort": 80,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "httplbrule"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/BackendPool1')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/etcd4001probe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 4001,
+              "backendPort": 4001,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "etcd4001"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/BackendPool1')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/etcd7001probe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 7001,
+              "backendPort": 7001,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "etcd7001"
+          }
+        ],
+        "probes": [
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 80,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "httpprobe"
+          },
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 4001,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "etcd4001probe"
+          },
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 7001,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "etcd7001probe"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('armApiVersion')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('networkSettings').virtualNetworkName]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('networkSettings').addressPrefix]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('networkSettings').subnet.dse.name]",
+            "properties": {
+              "addressPrefix": "[variables('networkSettings').subnet.dse.prefix]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "[variables('armApiVersion')]",
+      "name": "[concat(variables('publicIPAddressName'), copyindex())]",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "publicIPCopy",
+        "count": "[parameters('infraNodeCount')]"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "nsg",
+      "apiVersion": "[variables('armApiVersion')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "SSH",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      },
+      "dependsOn": []
+    },
+    {
+      "apiVersion": "[variables('armApiVersion')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(variables('nicName'),'infra', copyindex())]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'),copyindex())]",
+        "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]",
+        "Microsoft.Network/networkSecurityGroups/nsg"
+      ],
+      "copy": {
+        "name": "infraNetworkCopy",
+        "count": "[parameters('infraNodeCount')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat(variables('networkSettings').statics.infraRange.base, copyindex(variables('networkSettings').statics.infraRange.start))]",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',concat(variables('publicIPAddressName'), copyindex()))]"
+              },
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[concat(variables('lbID'), '/backendAddressPools/BackendPool1')]"
+                }
+              ]
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg')]"
         }
       }
-   },
-   "variables":{
-      "newStorageAccountName":"[concat(uniqueString(resourceGroup().id), 'sa')]",
-      "storageAccountName1":"[concat(uniqueString('1', resourceGroup().id), 'sa')]",
-      "storageAccountName2":"[concat(uniqueString('2', resourceGroup().id), 'sa')]",
-      "storageAccountName3":"[concat(uniqueString('3', resourceGroup().id), 'sa')]",
-      "storageAccountName4":"[concat(uniqueString('4', resourceGroup().id), 'sa')]",
-      "vmStorageAccountContainerName":"vhd",
-      "OSDiskName":"osdisk",
-      "publicIPAddressType":"Dynamic",
-      "publicIPAddressName":"publicips",
-      "infraVMName":"pinfra",
-      "workerVMName":"pworker",
-      "armApiVersion":"2015-06-15",
-      "computeApiVersion":"2016-04-30-preview",
-      "avSetName":"avSet",
-      "nicName":"nic",
-      "networkSettings":{
-         "virtualNetworkName":"virtualnetwork",
-         "addressPrefix":"10.0.0.0/16",
-         "subnet":{
-            "dse":{
-               "name":"dse",
-               "prefix":"10.0.0.0/24",
-               "vnet":"virtualnetwork"
+    },
+    {
+      "apiVersion": "[variables('computeApiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(variables('infraVMName'), copyindex())]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'infra', copyindex())]",
+        "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
+      ],
+      "copy": {
+        "name": "infraVMCopy",
+        "count": "[parameters('infraNodeCount')]"
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('headNodeSize')]"
+        },
+        "osProfile": {
+          "computername": "[concat(variables('infraVMName'),copyindex())]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('OSImage')]"
+          },
+          "osDisk": {
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'infra', copyindex()))]"
             }
-         },
-         "statics":{
-            "workerRange":{
-               "base":"10.0.0.",
-               "start":5
-            },
-            "infraRange":{
-               "base":"10.0.0.",
-               "start":240
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "[variables('computeApiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('infraVMName'), copyindex(), '/Installation')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "infraVMCopy"
+      ],
+      "copy": {
+        "name": "infraExtCopy",
+        "count": "[parameters('infraNodeCount')]"
+      },
+      "properties": {
+        "publisher": "Microsoft.OSTCExtensions",
+        "type": "CustomScriptForLinux",
+        "typeHandlerVersion": "1.3",
+        "settings": {
+          "fileUris": [
+            "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
+          ],
+          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('clusterYml'))]"
+        }
+      }
+    },
+    {
+      "apiVersion": "[variables('armApiVersion')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(variables('nicName'), 'worker', copyindex())]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]"
+      ],
+      "copy": {
+        "name": "workerNetworkCopy",
+        "count": "[parameters('workerNodeCount')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat(variables('networkSettings').statics.workerRange.base, copyindex(variables('networkSettings').statics.workerRange.start))]",
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              }
             }
-         }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('computeApiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(variables('workerVMName'), copyindex())]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', copyindex())]",
+        "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
+      ],
+      "copy": {
+        "name": "workerVMCopy",
+        "count": "[parameters('workerNodeCount')]"
       },
-      "vnetID":"[resourceId('Microsoft.Network/virtualNetworks',variables('networkSettings').virtualNetworkName)]",
-      "subnetRef":"[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.dse.name)]",
-      "templateBaseUrl":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/"
-   },
-   "resources":[
-      {
-         "type":"Microsoft.Compute/availabilitySets",
-         "name":"[variables('avSetName')]",
-         "apiVersion":"[variables('computeApiVersion')]",
-         "location":"[resourceGroup().location]",
-         "properties":{
-            "platformFaultDomainCount":"2",
-            "platformUpdateDomainCount":"2",
-            "managed":"true"
-         }
-      },
-      {
-         "apiVersion":"[variables('armApiVersion')]",
-         "type":"Microsoft.Network/virtualNetworks",
-         "name":"[variables('networkSettings').virtualNetworkName]",
-         "location":"[resourceGroup().location]",
-         "properties":{
-            "addressSpace":{
-               "addressPrefixes":[
-                  "[variables('networkSettings').addressPrefix]"
-               ]
-            },
-            "subnets":[
-               {
-                  "name":"[variables('networkSettings').subnet.dse.name]",
-                  "properties":{
-                     "addressPrefix":"[variables('networkSettings').subnet.dse.prefix]"
-                  }
-               }
-            ]
-         }
-      },
-      {
-         "type":"Microsoft.Network/publicIPAddresses",
-         "apiVersion":"[variables('armApiVersion')]",
-         "name":"[concat(variables('publicIPAddressName'), copyindex())]",
-         "location":"[resourceGroup().location]",
-         "copy":{
-           "name":"publicIPCopy",
-           "count":"[parameters('infraNodeCount')]"
-         },
-         "properties":{
-            "publicIPAllocationMethod":"[variables('publicIPAddressType')]"
-         }
-      },
-      {
-         "type":"Microsoft.Network/networkSecurityGroups",
-         "name":"nsg",
-         "apiVersion":"[variables('armApiVersion')]",
-         "location":"[resourceGroup().location]",
-         "properties":{
-            "securityRules":[
-               {
-                  "name":"SSH",
-                  "properties":{
-                     "protocol":"*",
-                     "sourcePortRange":"*",
-                     "destinationPortRange":"22",
-                     "sourceAddressPrefix":"*",
-                     "destinationAddressPrefix":"*",
-                     "access":"Allow",
-                     "priority":100,
-                     "direction":"Inbound"
-                  }
-               }
-            ]
-         },
-         "dependsOn":[
-
-         ]
-      },
-      {
-         "apiVersion":"[variables('armApiVersion')]",
-         "type":"Microsoft.Network/networkInterfaces",
-         "name":"[concat(variables('nicName'),'infra', copyindex())]",
-         "location":"[resourceGroup().location]",
-         "dependsOn":[
-            "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'),copyindex())]",
-            "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
-            "Microsoft.Network/networkSecurityGroups/nsg"
-         ],
-         "copy":{
-            "name":"infraNetworkCopy",
-            "count":"[parameters('infraNodeCount')]"
-         },                
-         "properties":{
-            "ipConfigurations":[
-               {
-                  "name":"ipconfig1",
-                  "properties":{
-                     "privateIPAllocationMethod":"Static",
-                     "privateIPAddress":"[concat(variables('networkSettings').statics.infraRange.base, copyindex(variables('networkSettings').statics.infraRange.start))]",
-                     
-                     "publicIPAddress":{
-                        "id":"[resourceId('Microsoft.Network/publicIPAddresses',concat(variables('publicIPAddressName'), copyindex()))]"
-                     },
-                     "subnet":{
-                        "id":"[variables('subnetRef')]"
-                     }
-                  }
-               }
-            ],
-            "networkSecurityGroup":{
-               "id":"[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg')]"
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('workerNodeSize')]"
+        },
+        "osProfile": {
+          "computername": "[concat(variables('workerVMName'), copyindex())]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('OSImage')]"
+          },
+          "osDisk": {
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', copyindex()))]"
             }
-         }
-      },  
-      {
-         "apiVersion":"[variables('computeApiVersion')]",
-         "type":"Microsoft.Compute/virtualMachines",
-         "name":"[concat(variables('infraVMName'), copyindex())]",
-         "location":"[resourceGroup().location]",
-         "dependsOn":[
-            "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'infra', copyindex())]",
-            "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
-         ],
-         "copy":{
-            "name":"infraVMCopy",
-            "count":"[parameters('infraNodeCount')]"
-         },        
-         "properties":{
-            "availabilitySet":{
-               "id":"[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
-            },
-            "hardwareProfile":{
-               "vmSize":"[parameters('headNodeSize')]"
-            },
-            "osProfile":{
-               "computername":"[concat(variables('infraVMName'),copyindex())]",
-               "adminUsername":"[parameters('adminUsername')]",
-               "adminPassword":"[parameters('adminPassword')]"
-            },
-            "storageProfile":{
-              "imageReference":{
-                  "id":"[parameters('OSImage')]"
-               },
-               "osDisk":{
-                  "createOption":"FromImage"
-               }
-            },
-            "networkProfile":{
-               "networkInterfaces":[
-                  {
-                     "id":"[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'infra', copyindex()))]"
-                  }
-               ]
-            }
-         }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "[variables('computeApiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('workerVMName'), copyindex(), '/Installation')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "infraExtCopy",
+        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), copyindex())]"
+      ],
+      "copy": {
+        "name": "workerExtCopy",
+        "count": "[parameters('workerNodeCount')]"
       },
-      {
-         "apiVersion":"[variables('computeApiVersion')]",
-         "type":"Microsoft.Compute/virtualMachines/extensions",
-         "name":"[concat(variables('infraVMName'), copyindex(), '/Installation')]",
-         "location":"[resourceGroup().location]",
-         "dependsOn":["infraVMCopy"],
-         "copy":{
-            "name":"infraExtCopy",
-            "count":"[parameters('infraNodeCount')]"
-         },
-         "properties":{
-            "publisher":"Microsoft.OSTCExtensions",
-            "type":"CustomScriptForLinux",
-            "typeHandlerVersion":"1.3",
-            "settings":{
-               "fileUris":[
-                  "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
-               ],
-               "commandToExecute":"[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('clusterYml'))]"
-            }
-         }
-      },
-      {
-         "apiVersion":"[variables('armApiVersion')]",
-         "type":"Microsoft.Network/networkInterfaces",
-         "name":"[concat(variables('nicName'), 'worker', copyindex())]",
-         "location":"[resourceGroup().location]",
-         "dependsOn":[
-            "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]"
-         ],
-         "copy":{
-            "name":"workerNetworkCopy",
-            "count":"[parameters('workerNodeCount')]"
-         },
-         "properties":{
-            "ipConfigurations":[
-               {
-                  "name":"ipconfig1",
-                  "properties":{
-                     "privateIPAllocationMethod":"Static",
-                     "privateIPAddress":"[concat(variables('networkSettings').statics.workerRange.base, copyindex(variables('networkSettings').statics.workerRange.start))]",
-                     "subnet":{
-                        "id":"[variables('subnetRef')]"
-                     }
-                  }
-               }
-            ]
-         }
-      },
-      {
-         "apiVersion":"[variables('computeApiVersion')]",
-         "type":"Microsoft.Compute/virtualMachines",
-         "name":"[concat(variables('workerVMName'), copyindex())]",
-         "location":"[resourceGroup().location]",
-         "dependsOn":[
-            "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', copyindex())]",
-            "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
-         ],
-         "copy":{
-            "name":"workerVMCopy",
-            "count":"[parameters('workerNodeCount')]"
-         },
-         "properties":{
-            "availabilitySet":{
-               "id":"[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
-            },
-            "hardwareProfile":{
-               "vmSize":"[parameters('workerNodeSize')]"
-            },
-            "osProfile":{
-               "computername":"[concat(variables('workerVMName'), copyindex())]",
-               "adminUsername":"[parameters('adminUsername')]",
-               "adminPassword":"[parameters('adminPassword')]"
-            },
-            "storageProfile":{
-               "imageReference":{
-                  "id":"[parameters('OSImage')]"
-               },
-               "osDisk":{
-                  "createOption":"FromImage"
-               }
-            },
-            "networkProfile":{
-               "networkInterfaces":[
-                  {
-                     "id":"[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', copyindex()))]"
-                  }
-               ]
-            }
-         }
-      },
-      {
-         "apiVersion":"[variables('computeApiVersion')]",
-         "type":"Microsoft.Compute/virtualMachines/extensions",
-         "name":"[concat(variables('workerVMName'), copyindex(), '/Installation')]",
-         "location":"[resourceGroup().location]",
-         "dependsOn":[
-            "infraExtCopy",
-            "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), copyindex())]"
-         ],
-         "copy":{
-            "name":"workerExtCopy",
-            "count":"[parameters('workerNodeCount')]"
-         },
-         "properties":{
-            "publisher":"Microsoft.OSTCExtensions",
-            "type":"CustomScriptForLinux",
-            "typeHandlerVersion":"1.3",
-            "settings":{
-               "fileUris":[
-                  "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
-               ],
-               "commandToExecute":"[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('clusteryml'))]"
-            }
-         }
-      }      
-   ]
+      "properties": {
+        "publisher": "Microsoft.OSTCExtensions",
+        "type": "CustomScriptForLinux",
+        "typeHandlerVersion": "1.3",
+        "settings": {
+          "fileUris": [
+            "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
+          ],
+          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('clusteryml'))]"
+        }
+      }
+    }
+  ]
 }
