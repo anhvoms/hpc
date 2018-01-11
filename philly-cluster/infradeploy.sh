@@ -360,7 +360,11 @@ function applyCloudConfig()
     cp $PHILLY_HOME/cloud-config.yml /var/lib/coreos-install/user_data
 
     sed -i "s/exit 0//g" /etc/rc.local
-    echo "coreos-cloudinit --from-file /var/lib/coreos-install/user_data/cloud-config.yml" >> /etc/rc.local
+    {
+        echo "coreos-cloudinit --from-file /var/lib/coreos-install/user_data/cloud-config.yml"
+        echo "#coreos-cloudinit generates a phillyresolv.conf file that we should use"
+        echo "cp /etc/phillyresolv.conf /etc/resolv.conf"
+    } >> /etc/rc.local
 }
 
 
@@ -401,8 +405,11 @@ function startHadoopServices()
             do
                 sleep 2
             done           
-        done
-        /opt/bin/hdfs mkdir -p hdfs://hnn:8020/sys/runtimes
+        done        
+        ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-1:8020/sys/runtimes)
+        if [[ -n "$ret" ]]; then
+            ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-2:8020/sys/runtimes)
+        fi
     fi
 }
 
