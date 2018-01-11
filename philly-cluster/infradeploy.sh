@@ -405,7 +405,7 @@ function startHadoopServices()
         for service in zookeeper hadoop-journal-node hadoop-name-node hadoop-data-node hadoop-resource-manager hadoop-node-manager
         do
             fleetctl start $PHILLY_HOME/services/$service.service
-            while [[ -n $(fleetctl list-unit --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
+            while [[ -n $(fleetctl list-units --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
             do
                 sleep 2
             done           
@@ -417,14 +417,14 @@ function startHadoopServices()
         # workers are part of hadoop data node set, first worker should create the hdfs directory that is needed
         # for alertserver
         #
-        while [[ -n $(fleetctl list-unit --fields unit,sub | grep hadoop-data-node | grep -E 'dead|start-pre|auto-restart') ]];
+        while [[ -n $(fleetctl list-units --fields unit,sub | grep hadoop-data-node | grep -E 'dead|start-pre|auto-restart') ]];
         do
             sleep 2
         done           
    
-        ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-1:8020/sys/runtimes)
+        ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-1:8020/sys/runtimes 2>&1)
         if [[ -n "$ret" ]]; then
-            ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-2:8020/sys/runtimes)
+            ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-2:8020/sys/runtimes 2>&1)
         fi
     fi
 }
