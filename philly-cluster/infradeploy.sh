@@ -410,6 +410,18 @@ function startHadoopServices()
                 sleep 2
             done           
         done        
+    fi
+    
+    if [ "$NAME" == "$WORKER_BASE_NAME$masterIndex" ] ; then
+        #
+        # workers are part of hadoop data node set, first worker should create the hdfs directory that is needed
+        # for alertserver
+        #
+        while [[ -n $(fleetctl list-unit --fields unit,sub | grep hadoop-data-node | grep -E 'dead|start-pre|auto-restart') ]];
+        do
+            sleep 2
+        done           
+   
         ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-1:8020/sys/runtimes)
         if [[ -n "$ret" ]]; then
             ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-2:8020/sys/runtimes)
