@@ -18,6 +18,10 @@ IP=$(ifconfig eth0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0
 isWorker=0
 if [[ $NAME == *"worker"* ]]; then isWorker=1; fi
 
+isInfra=0
+if [[ $NAME == *"infra"* ]]; then isInfra=1; fi
+
+
 INFRA_COUNT=$1
 ADMIN_USERNAME=$2
 ADMIN_PASSWORD=$3
@@ -80,7 +84,7 @@ function fixHostsFile()
 {
     echo "Fixing up hosts file to include entries to other infrastructure nodes and worker nodes"
 
-    if [[ $isWorker -eq 0 ]];
+    if [[ $isInfra -eq 1 ]];
     then    
         localhostLine=$(grep 127.0.0.1 /etc/hosts)
         if [[ -z $localhostLine ]];
@@ -318,7 +322,7 @@ function updateResolvConf()
 {
     #worker setup is not started until infra nodes are finished setting up
     #by that time dns from infra nodes are already up
-    if [[ $isWorker -eq 0 ]];
+    if [[ $isInfra -eq 1 ]];
     then
         while [[ -z $(netstat -nlp 2>/dev/null | grep 127.0.0.1:53) ]];
         do
