@@ -7,8 +7,8 @@ fi
 
 echo "Script arguments: $*"
 
-if [ $# != 19 ]; then
-    echo "Usage: $0 <InfraCount> <AdminUserName> <AdminPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerCount> <WorkerIpBase> <WorkerIpStart> <AuxBaseName> <AuxNodeCount> <AuxIpBase> <AuxIpStart> <TemplateBaseUrl> <InfraSKU> <WorkerSKU> <AuxSKU> <ClusterYmlUrl>"
+if [ $# != 20 ]; then
+    echo "Usage: $0 <InfraCount> <AdminUserName> <AdminPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerCount> <WorkerIpBase> <WorkerIpStart> <AuxBaseName> <AuxNodeCount> <AuxIpBase> <AuxIpStart> <TemplateBaseUrl> <InfraSKU> <WorkerSKU> <AuxSKU> <ClusterYmlUrl> <CloudConfigTemplate>"
     exit 1
 fi
 
@@ -44,10 +44,11 @@ HEADNODE_SKU=${16}
 WORKERNODE_SKU=${17}
 AUXNODE_SKU=${18}
 CLUSTERYML=${19}
+CLOUDCONFIG=${20}
 
 PHILLY_HOME=/var/lib/philly
 masterIndex=0
-cluster=azeast
+cluster=eus
 
 function initialSetup()
 {
@@ -236,13 +237,20 @@ function updateConfigFile()
 
     cp $PHILLY_HOME/azure.yml $PHILLY_HOME/azure.yml.orig
     if [[ "$CLUSTERYML" == "none" ]] ; then
+        echo "Using the image's cluster yml file $PHILLY_HOME/azure.yml"
         sed -i "s/__CLUSTER__/$cluster/g" $PHILLY_HOME/azure.yml
     else
         wget $CLUSTERYML -O $PHILLY_HOME/azure.yml
         cluster=$(grep -m 1 "id: " gcr.yml | awk -F" " '{print $2}')
     fi
 
-    cp $PHILLY_HOME/cloud-config.yml $PHILLY_HOME/cloud-config.yml.orig
+    cp $PHILLY_HOME/cloud-config.yml $PHILLY_HOME/cloud-config.yml.orig   
+    if [[ "$CLOUDCONFIG" == "none" ]] ; then
+        echo "Using the image's cloud config template $PHILLY_HOME/cloud-config.yml.template"
+    else
+        wget $CLOUDCONFIG -O $PHILLY_HOME/cloud-config.yml.template
+    fi   
+
     $PHILLY_HOME/tools/generate-config -c $PHILLY_HOME/azure.yml --host $NAME -t $PHILLY_HOME/cloud-config.yml.template > $PHILLY_HOME/cloud-config.yml
     
     echo "Finished updating cloud-config.yml file"
@@ -357,7 +365,10 @@ function applyCloudConfig()
 {
     #Applying cloud config
     coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
-
+    if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
+        echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+    fi
+    
     #Wait for fleet to be ready
     while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
     mkdir -p /var/lib/coreos-install/user_data

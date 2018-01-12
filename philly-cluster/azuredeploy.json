@@ -124,6 +124,13 @@
       "metadata": {
         "description": "Provide a link to your cluster yml file."
       }
+    },
+    "cloudconfigYml": {
+      "type": "string",
+      "defaultValue": "none",
+      "metadata": {
+        "description": "Provide a link to your cloud config template yml file."
+      }
     }
   },
   "variables": {
@@ -461,7 +468,7 @@
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
           ],
-          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'))]"
+          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'), ' ', parameters('cloudconfigYml'))]"
         }
       }
     },
@@ -556,7 +563,7 @@
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
           ],
-          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'))]"
+          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'), ' ', parameters('cloudconfigYml'))]"
         }
       }
     },
@@ -651,7 +658,7 @@
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
           ],
-          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'))]"
+          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'), ' ', parameters('cloudconfigYml'))]"
         }
       }
     }    
