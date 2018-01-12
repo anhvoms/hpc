@@ -366,7 +366,7 @@ function applyCloudConfig()
     #Applying cloud config
     coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
     if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
-        echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+        echo "core ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
     fi
     
     #Wait for fleet to be ready
