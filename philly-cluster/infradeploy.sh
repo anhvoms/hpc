@@ -496,7 +496,6 @@ function startOtherServices()
         fleetctl start $PHILLY_HOME/services/ganglia-client
         sleep 10
     fi
-    
 }
 
 
@@ -509,6 +508,32 @@ function enableRDMA()
             echo "OS.EnableRDMA=y"
             echo "OS.UpdateRdmaDriver=y"
         } >> /etc/waagent.conf
+    fi
+}
+
+
+function startNfs()
+{
+    #
+    # Query etcd to find out if this machine is responsible for nfs server
+    # (If etcd is not up we have a bigger problem than starting nfs)
+    #
+    if [[ $(etcdctl get /config/machines/$NAME/role) == "nfs" ]];
+    then
+        #remove fsid=0 because the clients are using nfsv3 syntax to mount nfsv4
+        sed -i "s/,fsid=0//g" /etc/exports
+        sed -i "s/fsid=0,//g" /etc/exports
+        systemctl restart nfs-kernel-server
+
+        #when this node gets restarted the coreos-cloudinit will change /etc/exports
+        #we update it again
+        {
+            echo 'sed -i "s/,fsid=0//g" /etc/exports'
+            echo 'sed -i "s/fsid=0,//g" /etc/exports'
+            echo 'systemctl restart nfs-kernel-server'
+        } >> /etc/rc.local       
+        
+        fleetctl start $PHILLY_HOME/services/nfs-mount
     fi
 }
 
