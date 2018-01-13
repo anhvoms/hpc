@@ -189,8 +189,8 @@
       "apiVersion": "[variables('computeApiVersion')]",
       "location": "[resourceGroup().location]",
       "properties": {
-        "platformFaultDomainCount": "2",
-        "platformUpdateDomainCount": "2",
+        "platformFaultDomainCount": "3",
+        "platformUpdateDomainCount": "5",
         "managed": "true"
       }
     },
@@ -436,8 +436,22 @@
             "id": "[parameters('OSImage')]"
           },
           "osDisk": {
-            "createOption": "FromImage"
-          }
+            "createOption": "FromImage",
+            "diskSizeGB": 1023,
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          },
+          "dataDisks": [
+            {
+              "createOption": "Empty",
+              "lun": 0,
+              "diskSizeGB": 1023,
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              }
+            }
+          ]                   
         },
         "networkProfile": {
           "networkInterfaces": [
@@ -530,8 +544,22 @@
             "id": "[parameters('OSImage')]"
           },
           "osDisk": {
-            "createOption": "FromImage"
-          }
+            "createOption": "FromImage",
+            "diskSizeGB": 1023,
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          },
+          "dataDisks": [
+            {
+              "createOption": "Empty",
+              "lun": 0,
+              "diskSizeGB": 1023,
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              }
+            }
+          ]                      
         },
         "networkProfile": {
           "networkInterfaces": [
@@ -625,8 +653,22 @@
             "id": "[parameters('OSImage')]"
           },
           "osDisk": {
-            "createOption": "FromImage"
-          }
+            "createOption": "FromImage",
+            "diskSizeGB": 1023,
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          },
+          "dataDisks": [
+            {
+              "createOption": "Empty",
+              "lun": 0,
+              "diskSizeGB": 1023,
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              }
+            }
+          ]
         },
         "networkProfile": {
           "networkInterfaces": [

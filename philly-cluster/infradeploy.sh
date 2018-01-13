@@ -371,12 +371,12 @@ function applyCloudConfig()
     
     #Wait for fleet to be ready
     while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
-    mkdir -p /var/lib/coreos-install/user_data
+    mkdir -p /var/lib/coreos-install
     cp $PHILLY_HOME/cloud-config.yml /var/lib/coreos-install/user_data
 
     sed -i "s/exit 0//g" /etc/rc.local
     {
-        echo "coreos-cloudinit --from-file /var/lib/coreos-install/user_data/cloud-config.yml"
+        echo "coreos-cloudinit --from-file /var/lib/coreos-install/user_data"
         echo "#coreos-cloudinit generates a phillyresolv.conf file that we should use"
         echo "cp /etc/phillyresolv.conf /etc/resolv.conf"
     } >> /etc/rc.local
@@ -407,13 +407,16 @@ function startCoreServices()
     else
         updateResolvConf
     fi
+
+    #restart docker service so we can start pulling from master's registry
+    /etc/init.d/docker restart
 }
 
 
 function startHadoopServices()
 {  
     if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
-        for service in zookeeper hadoop-journal-node hadoop-name-node hadoop-data-node hadoop-resource-manager hadoop-node-manager
+        for service in zookeeper hadoop-journal-node hadoop-name-node hadoop-data-node hadoop-resource-manager
         do
             fleetctl start $PHILLY_HOME/services/$service.service
             while [[ -n $(fleetctl list-units --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
@@ -521,9 +524,18 @@ function startNfs()
     if [[ $(etcdctl get /config/machines/$NAME/role) == "nfs" ]];
     then
         #remove fsid=0 because the clients are using nfsv3 syntax to mount nfsv4
+        systemctl stop nfs-kernel-server
         sed -i "s/,fsid=0//g" /etc/exports
         sed -i "s/fsid=0,//g" /etc/exports
-        systemctl restart nfs-kernel-server
+        if [[ -z $(fdisk -l /dev/sdc 2>&1 | grep "cannot open") ]];
+        then
+            (echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk /dev/sdc
+            mkfs -t ext4 /dev/sdc1
+            mkdir /var/nfsshare
+            mount /dev/sdc1 /var/nfsshare
+        fi
+        
+        systemctl start nfs-kernel-server
 
         #when this node gets restarted the coreos-cloudinit will change /etc/exports
         #we update it again
@@ -534,6 +546,13 @@ function startNfs()
         } >> /etc/rc.local       
         
         fleetctl start $PHILLY_HOME/services/nfs-mount
+
+        #all nfs-mount should be in 'exited' status
+        while [[ -n $(fleetctl list-units --fields unit,sub | grep nfs-mount | grep -E 'dead|start-pre|auto-restart|running') ]];
+        do
+            sleep 2
+        done
+        fleetctl start $PHILLY_HOME/services/hadoop-node-manager
     fi
 }
 
