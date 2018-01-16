@@ -50,7 +50,7 @@ CLOUDCONFIG=${20}
 
 PHILLY_HOME=/var/lib/philly
 masterIndex=0
-cluster=eus
+cluster=eu1
 
 function initialSetup()
 {
