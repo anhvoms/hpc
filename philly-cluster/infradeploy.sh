@@ -375,7 +375,7 @@ function applyCloudConfig()
         [ ! -f "/var/lib/coreos-install/user_data" ] &&
             sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$NAME.yml?reconfigure" -o /var/lib/coreos-install/user_data
         [ -f "/var/lib/coreos-install/user_data" ] &&
-            coreos-cloudinit from-file=/var/lib/coreos-install/user_data
+            coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
     fi
 
     sed -i "s/exit 0//g" /etc/rc.local
@@ -383,7 +383,7 @@ function applyCloudConfig()
             echo '[ ! -f "/var/lib/coreos-install/user_data" ] &&'
             echo '    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$(hostname).yml?reconfigure" -o /var/lib/coreos-install/user_data'
             echo '[ -f "/var/lib/coreos-install/user_data" ] &&'
-            echo '    coreos-cloudinit from-file=/var/lib/coreos-install/user_data'
+            echo '    coreos-cloudinit --from-file=/var/lib/coreos-install/user_data'
             echo "#coreos-cloudinit generates a phillyresolv.conf file that we should use"
             echo "cp /etc/phillyresolv.conf /etc/resolv.conf"
         } >> /etc/rc.local
