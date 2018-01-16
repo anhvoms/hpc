@@ -399,6 +399,8 @@ function startCoreServices()
         #Add activeNameNode key for DNS module
         etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
 
+        etcdctl mkdir /eventqueue
+        
         for service in docker-registry master dns
         do
             fleetctl start $PHILLY_HOME/services/$service.service
