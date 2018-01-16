@@ -339,8 +339,9 @@ function updateResolvConf()
     cp /etc/phillyresolv.conf /etc/resolv.conf
     sed -i "s/search $cluster.philly.selfhost.corp.microsoft.com/search $cluster.philly.selfhost.corp.microsoft.com $azureInternalDomain/g" /etc/resolv.conf
 
-    #at this point dns is up, so we remove the infra entry from hosts file
+    #at this point dns is up, so we remove the infra and master entry from hosts file
     sed -i "s/127.0.0.1 localhost infra/127.0.0.1 localhost/g" /etc/hosts
+    sed -i "s/$INFRA_IP_BASE$INFRA_IP_START master//g" /etc/hosts
 }
 
 
@@ -358,6 +359,7 @@ function setupSlurm()
 
 function applyCloudConfig()
 {
+    mkdir -p /var/lib/coreos-install
     if [[ $isInfra -eq 1 ]];
     then
         #Applying cloud config
@@ -368,7 +370,6 @@ function applyCloudConfig()
         
         #Wait for fleet to be ready
         while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
-        mkdir -p /var/lib/coreos-install
         cp $PHILLY_HOME/cloud-config.yml /var/lib/coreos-install/user_data
     else
         [ ! -f "/var/lib/coreos-install/user_data" ] &&
@@ -406,8 +407,9 @@ function startCoreServices()
             fleetctl start $PHILLY_HOME/services/$service.service
             while [[ -n $(fleetctl list-unit --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
             do
-                sleep 2
+                sleep 5
             done
+            sleep 30
         done
         updateResolvConf
 
@@ -429,9 +431,9 @@ function startHadoopServices()
             fleetctl start $PHILLY_HOME/services/$service.service
             while [[ -n $(fleetctl list-units --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
             do
-                sleep 2
-            done           
-        done        
+                sleep 5
+            done    
+        done    
     fi
     
     if [ "$NAME" == "$WORKER_BASE_NAME$masterIndex" ] ; then
