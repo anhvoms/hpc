@@ -112,29 +112,29 @@ function fixHostsFile()
     fi
     
 
-    # i=0
-    # while [ $i -lt $INFRA_COUNT ]
-    # do
-    #     nextip=$((i + INFRA_IP_START))
-    #     echo $INFRA_IP_BASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts
-    #     ((++i))
-    # done
+    i=0
+    while [ $i -lt $INFRA_COUNT ]
+    do
+        nextip=$((i + INFRA_IP_START))
+        echo $INFRA_IP_BASE$nextip $INFRA_BASE_NAME$i >> /etc/hosts
+        ((++i))
+    done
 
-    # i=0
-    # while [ $i -lt $AUX_COUNT ]
-    # do
-    #     nextip=$((i + AUX_IP_START))
-    #      echo $AUX_IP_BASE$nextip $AUX_BASE_NAME$i >> /etc/hosts
-    #     ((++i))
-    # done
+    i=0
+    while [ $i -lt $AUX_COUNT ]
+    do
+        nextip=$((i + AUX_IP_START))
+         echo $AUX_IP_BASE$nextip $AUX_BASE_NAME$i >> /etc/hosts
+        ((++i))
+    done
 
-    # i=0
-    # while [ $i -lt $WORKER_COUNT ]
-    # do
-    #     nextip=$((i + WORKER_IP_START))
-    #     echo $WORKER_IP_BASE$nextip $WORKER_BASE_NAME$i >> /etc/hosts
-    #     ((++i))
-    # done
+    i=0
+    while [ $i -lt $WORKER_COUNT ]
+    do
+        nextip=$((i + WORKER_IP_START))
+        echo $WORKER_IP_BASE$nextip $WORKER_BASE_NAME$i >> /etc/hosts
+        ((++i))
+    done
     echo "Finished setting up hosts file"
 }
 
@@ -415,7 +415,7 @@ function startCoreServices()
     fi
 
     #restart docker service so we can start pulling from master's registry
-    /etc/init.d/docker restart
+    #/etc/init.d/docker restart
 }
 
 
