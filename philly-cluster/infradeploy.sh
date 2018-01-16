@@ -340,7 +340,7 @@ function updateResolvConf()
     sed -i "s/search $cluster.philly.selfhost.corp.microsoft.com/search $cluster.philly.selfhost.corp.microsoft.com $azureInternalDomain/g" /etc/resolv.conf
 
     #at this point dns is up, so we remove the infra entry from hosts file
-    sed -i "s/127.0.0.1 localhost infra//g" /etc/hosts
+    sed -i "s/127.0.0.1 localhost infra/127.0.0.1 localhost/g" /etc/hosts
 }
 
 
