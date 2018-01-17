@@ -360,8 +360,8 @@ function setupSlurm()
 function applyCloudConfig()
 {
     mkdir -p /var/lib/coreos-install
-    if [[ $isInfra -eq 1 ]];
-    then
+#    if [[ $isInfra -eq 1 ]];
+#    then
         #Applying cloud config
         coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
         if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
@@ -371,12 +371,12 @@ function applyCloudConfig()
         #Wait for fleet to be ready
         while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 5; done
         cp $PHILLY_HOME/cloud-config.yml /var/lib/coreos-install/user_data
-    else
-        [ ! -f "/var/lib/coreos-install/user_data" ] &&
-            sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$NAME.yml?reconfigure" -o /var/lib/coreos-install/user_data
-        [ -f "/var/lib/coreos-install/user_data" ] &&
-            coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
-    fi
+#    else
+#        [ ! -f "/var/lib/coreos-install/user_data" ] &&
+#            sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$NAME.yml?reconfigure" -o /var/lib/coreos-install/user_data
+#        [ -f "/var/lib/coreos-install/user_data" ] &&
+#            coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
+#    fi
 
     sed -i "s/exit 0//g" /etc/rc.local
         {
@@ -556,11 +556,11 @@ function startNfs()
 initialSetup
 fixHostsFile
 
-if [[ $isInfra -eq 1 ]];
-then
+#if [[ $isInfra -eq 1 ]];
+#then
     generateMachinesYml
     updateConfigFile
-fi
+#fi
 setupSlurm
 
 applyCloudConfig
