@@ -63,7 +63,7 @@ function startService()
 function startServiceWaitForRunning()
 {
     startService $1
-    while [[ -n $(fleetctl list-unit --fields unit,sub | grep $1 | grep -E 'dead|start-pre|auto-restart') ]];
+    while [[ -n $(fleetctl list-units --fields unit,sub | grep $1 | grep -E 'dead|start-pre|auto-restart') ]];
     do
         sleep 5
     done
@@ -73,7 +73,7 @@ function startServiceWaitForRunning()
 function startServiceWaitForExited()
 {
     startService $1
-    while [[ -n $(fleetctl list-unit --fields unit,sub | grep $1 | grep -E 'dead|start-pre|auto-restart|running') ]];
+    while [[ -n $(fleetctl list-units --fields unit,sub | grep $1 | grep -E 'dead|start-pre|auto-restart|running') ]];
     do
         sleep 5
     done
@@ -119,9 +119,13 @@ function initialSetup()
         fi
     fi
 
-    ln -s /bin/chmod /usr/bin/chmod
-    ln -s /bin/bash /usr/bin/bash
     ln -s /bin/mount /usr/bin/mount
+    ln -s /sbin/sysctl /usr/sbin/sysctl
+    ln -s /bin/bash /usr/bin/bash
+    ln -s /bin/true /usr/bin/true
+    ln -s /bin/mount /usr/bin/mount
+    ln -s /bin/chmod /usr/bin/chmod
+
     echo "Initial setup done"
 }
 
@@ -454,7 +458,12 @@ function startCoreServices()
 function startHadoopServices()
 {
     if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
-        for service in zookeeper hadoop-journal-node hadoop-name-node hadoop-data-node hadoop-resource-manager
+
+        #zookeeper sometimes takes a while to finish leader election      
+        startServiceWaitForRunning zookeeper
+        sleep 120
+
+        for service in hadoop-journal-node hadoop-name-node hadoop-data-node hadoop-resource-manager
         do
             startServiceWaitForRunning $service
         done
