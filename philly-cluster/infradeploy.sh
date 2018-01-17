@@ -52,6 +52,34 @@ PHILLY_HOME=/var/lib/philly
 masterIndex=0
 cluster=eu1
 
+
+function startService()
+{
+    fleetctl start $PHILLY_HOME/services/$1.service
+    sleep 10
+}
+
+
+function startServiceWaitForRunning()
+{
+    startService $1
+    while [[ -n $(fleetctl list-unit --fields unit,sub | grep $1 | grep -E 'dead|start-pre|auto-restart') ]];
+    do
+        sleep 5
+    done
+}
+
+
+function startServiceWaitForExited()
+{
+    startService $1
+    while [[ -n $(fleetctl list-unit --fields unit,sub | grep $1 | grep -E 'dead|start-pre|auto-restart|running') ]];
+    do
+        sleep 5
+    done
+}
+
+
 function initialSetup()
 {
     echo "Initial Setup: get new machine id, copy stored .ssh folder"
@@ -404,20 +432,13 @@ function startCoreServices()
 
         for service in docker-registry master dns
         do
-            fleetctl start $PHILLY_HOME/services/$service.service
-            while [[ -n $(fleetctl list-unit --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
-            do
-                sleep 5
-            done
+            startServiceWaitForRunning $service
             sleep 30
         done
         updateResolvConf
 
-        fleetctl start $PHILLY_HOME/services/webserver.service
-        while [[ -n $(fleetctl list-unit --fields unit,sub | grep webserver | grep -E 'dead|start-pre|auto-restart') ]];
-        do
-            sleep 5
-        done
+        startServiceWaitForRunning webserver
+        
     else
         updateResolvConf
     fi
@@ -432,11 +453,7 @@ function startHadoopServices()
     if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
         for service in zookeeper hadoop-journal-node hadoop-name-node hadoop-data-node hadoop-resource-manager
         do
-            fleetctl start $PHILLY_HOME/services/$service.service
-            while [[ -n $(fleetctl list-units --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
-            do
-                sleep 5
-            done
+            startServiceWaitForRunning $service
         done
     fi
 
@@ -508,9 +525,7 @@ function startOtherServices()
             etcdctl mkdir resources/portRangeStart/$WORKER_IP_BASE$nextip
             ((++i))
         done
-
-        fleetctl start $PHILLY_HOME/services/ganglia-client
-        sleep 10
+        startService ganglia-client
     fi
 }
 
@@ -537,16 +552,11 @@ function startNfs()
     if [[ $isInfra -eq 0 ]]; then       
         if [[ $(etcdctl --endpoints "http://$LOAD_BALANCER_IP:4001" get /config/machines/$NAME/role) == "nfs" ]];
         then
-            
-            fleetctl start $PHILLY_HOME/services/nfs-mount
+            systemctl restart nfs-kernel-server
+            sleep 10
 
-            #all nfs-mount should be in 'exited' status
-            while [[ -n $(fleetctl list-units --fields unit,sub | grep nfs-mount | grep -E 'dead|start-pre|auto-restart|running') ]];
-            do
-
-                sleep 5
-            done
-            fleetctl start $PHILLY_HOME/services/hadoop-node-manager
+            startServiceWaitForExited nfs-mount
+            startServiceWaitForRunning hadoop-node-manager
         fi
     fi
 }
