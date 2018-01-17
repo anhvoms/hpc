@@ -119,6 +119,9 @@ function initialSetup()
         fi
     fi
 
+    ln -s /bin/chmod /usr/bin/chmod
+    ln -s /bin/bash /usr/bin/bash
+    ln -s /bin/mount /usr/bin/mount
     echo "Initial setup done"
 }
 
