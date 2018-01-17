@@ -369,7 +369,7 @@ function applyCloudConfig()
         fi
         
         #Wait for fleet to be ready
-        while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 2; done
+        while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 5; done
         cp $PHILLY_HOME/cloud-config.yml /var/lib/coreos-install/user_data
     else
         [ ! -f "/var/lib/coreos-install/user_data" ] &&
@@ -414,6 +414,10 @@ function startCoreServices()
         updateResolvConf
 
         fleetctl start $PHILLY_HOME/services/webserver.service
+        while [[ -n $(fleetctl list-unit --fields unit,sub | grep webserver | grep -E 'dead|start-pre|auto-restart') ]];
+        do
+            sleep 5
+        done
     else
         updateResolvConf
     fi
@@ -443,7 +447,7 @@ function startHadoopServices()
         #
         while [[ -n $(fleetctl list-units --fields unit,sub | grep hadoop-data-node | grep -E 'dead|start-pre|auto-restart') ]];
         do
-            sleep 2
+            sleep 5
         done           
    
         ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-1:8020/sys/runtimes 2>&1)
@@ -540,7 +544,7 @@ function startNfs()
         while [[ -n $(fleetctl list-units --fields unit,sub | grep nfs-mount | grep -E 'dead|start-pre|auto-restart|running') ]];
         do
 
-            sleep 2
+            sleep 5
         done
         fleetctl start $PHILLY_HOME/services/hadoop-node-manager
     fi
