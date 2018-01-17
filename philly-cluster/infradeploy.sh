@@ -534,18 +534,20 @@ function startNfs()
     # Query etcd to find out if this machine is responsible for nfs server
     # (If etcd is not up we have a bigger problem than starting nfs)
     #
-    if [[ $(etcdctl get /config/machines/$NAME/role) == "nfs" ]];
-    then
- 
-        fleetctl start $PHILLY_HOME/services/nfs-mount
+    if [[ $isInfra -eq 0 ]]; then       
+        if [[ $(etcdctl --endpoints "http://$LOAD_BALANCER_IP:4001" get /config/machines/$NAME/role) == "nfs" ]];
+        then
+            
+            fleetctl start $PHILLY_HOME/services/nfs-mount
 
-        #all nfs-mount should be in 'exited' status
-        while [[ -n $(fleetctl list-units --fields unit,sub | grep nfs-mount | grep -E 'dead|start-pre|auto-restart|running') ]];
-        do
+            #all nfs-mount should be in 'exited' status
+            while [[ -n $(fleetctl list-units --fields unit,sub | grep nfs-mount | grep -E 'dead|start-pre|auto-restart|running') ]];
+            do
 
-            sleep 5
-        done
-        fleetctl start $PHILLY_HOME/services/hadoop-node-manager
+                sleep 5
+            done
+            fleetctl start $PHILLY_HOME/services/hadoop-node-manager
+        fi
     fi
 }
 
