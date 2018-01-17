@@ -55,22 +55,22 @@ cluster=eu1
 function initialSetup()
 {
     echo "Initial Setup: get new machine id, copy stored .ssh folder"
-    
+
     # update machine-id because all VM's start from the same image.
     # fleet/etcd uses /etc/machine-id to self identify
     rm /etc/machine-id
     systemd-machine-id-setup
-    
+
     # Don't require password for HPC user sudo
     echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-    
+
     # Disable tty requirement for sudo
     sed -i 's/^Defaults[ ]*requiretty/# Defaults requiretty/g' /etc/sudoers
     mkdir -p /home/$ADMIN_USERNAME/.ssh
     mkdir -p ~/.ssh
     cp $PHILLY_HOME/bootstrap/.ssh/* /home/$ADMIN_USERNAME/.ssh
     cp $PHILLY_HOME/bootstrap/.ssh/* ~/.ssh
-    
+
     chmod 700 /home/$ADMIN_USERNAME/.ssh
     chmod 400 /home/$ADMIN_USERNAME/.ssh/config
     chmod 640 /home/$ADMIN_USERNAME/.ssh/authorized_keys
@@ -85,7 +85,7 @@ function initialSetup()
     if [[ -z $(fdisk -l /dev/sdc 2>&1 | grep "cannot open") ]];
     then
         if [ ! -b /dev/sdc1 ];
-        then            
+        then
             (echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk /dev/sdc
             mkfs -t ext4 /dev/sdc1
         fi
@@ -100,7 +100,7 @@ function fixHostsFile()
     echo "Fixing up hosts file to include entries to other infrastructure nodes and worker nodes"
 
     if [[ $isInfra -eq 1 ]];
-    then    
+    then
         localhostLine=$(grep 127.0.0.1 /etc/hosts)
         if [[ -z $localhostLine ]];
         then
@@ -110,7 +110,7 @@ function fixHostsFile()
         fi
         echo $INFRA_IP_BASE$INFRA_IP_START master >> /etc/hosts
     fi
-    
+
 
     i=0
     while [ $i -lt $INFRA_COUNT ]
@@ -142,7 +142,7 @@ function fixHostsFile()
 function generateMachinesYml()
 {
     echo "Generating machines.yml file to be included as part of cluster.yml"
-    
+
     machineYmlFile="$PHILLY_HOME/machines.yml"
     echo "#This file is generated automatically at provisioning" > $machineYmlFile
 
@@ -153,71 +153,71 @@ function generateMachinesYml()
     WORKERNODE_SKU=${WORKERNODE_SKU//_/-} #change dash into underscore
     AUXNODE_SKU=${AUXNODE_SKU,,} #switch to lowercase
     AUXNODE_SKU=${AUXNODE_SKU//_/-} #change dash into underscore
-    
+
     {
     i=0
     while [ $i -lt $INFRA_COUNT ]
-    do              
+    do
         nextip=$((i + INFRA_IP_START))
-        echo "    $INFRA_BASE_NAME$i:" 
-        echo "      sku: $HEADNODE_SKU" 
-        echo "      rack: rack0"  
-        echo "      rackLocation: 1" 
-        echo "      outlet: 1.0" 
-        echo "      role: infrastructure" 
-        echo "      mac: 00:00:00:00:00:00" 
-        echo "      ip: $INFRA_IP_BASE$nextip" 
-        echo "      infraId: $i" 
+        echo "    $INFRA_BASE_NAME$i:"
+        echo "      sku: $HEADNODE_SKU"
+        echo "      rack: rack0"
+        echo "      rackLocation: 1"
+        echo "      outlet: 1.0"
+        echo "      role: infrastructure"
+        echo "      mac: 00:00:00:00:00:00"
+        echo "      ip: $INFRA_IP_BASE$nextip"
+        echo "      infraId: $i"
         if [ $i -lt 3 ]
         then
-            echo "      yarnNodeId: $((i+1))" 
+            echo "      yarnNodeId: $((i+1))"
         fi
 
         if [ $i -lt 2 ]
         then
-            echo "      hdfsNameNodeId: $((i+1))" 
+            echo "      hdfsNameNodeId: $((i+1))"
         fi
-        echo "      os: prod-infra" 
+        echo "      os: prod-infra"
         ((++i))
     done
 
     i=0
     while [ $i -lt $AUX_COUNT ]
-    do              
+    do
         nextip=$((i + AUX_IP_START))
-        echo "    $AUX_BASE_NAME$i:" 
-        echo "      sku: $AUXNODE_SKU" 
-        echo "      rack: rack0"  
-        echo "      rackLocation: 1" 
+        echo "    $AUX_BASE_NAME$i:"
+        echo "      sku: $AUXNODE_SKU"
+        echo "      rack: rack0"
+        echo "      rackLocation: 1"
         echo "      outlet: 1.0"
         if [[ $i -eq 0 ]]
         then
-            echo "      role: nfs" 
+            echo "      role: nfs"
         elif [[ $i -eq 1 ]]
         then
-            echo "      role: ganglia-master" 
+            echo "      role: ganglia-master"
         else
-            echo "      role: auxiliary" 
+            echo "      role: auxiliary"
         fi
-        echo "      mac: 00:00:00:00:00:00" 
-        echo "      ip: $AUX_IP_BASE$nextip" 
-        echo "      os: prod-infra" 
+        echo "      mac: 00:00:00:00:00:00"
+        echo "      ip: $AUX_IP_BASE$nextip"
+        echo "      os: prod-infra"
         ((++i))
     done
-      
+
     i=0
     while [ $i -lt $WORKER_COUNT ]
     do
         nextip=$((i + WORKER_IP_START))
-        echo "    $WORKER_BASE_NAME$i:" 
-        echo "      sku: $WORKERNODE_SKU" 
-        echo "      rack: rack1" 
-        echo "      rackLocation: 1" 
-        echo "      outlet: 1.0" 
-        echo "      role: worker" 
-        echo "      mac: 00:00:00:00:00:00" 
-        echo "      ip: $WORKER_IP_BASE$nextip" 
-        echo "      os: prod-worker" 
+        echo "    $WORKER_BASE_NAME$i:"
+        echo "      sku: $WORKERNODE_SKU"
+        echo "      rack: rack1"
+        echo "      rackLocation: 1"
+        echo "      outlet: 1.0"
+        echo "      role: worker"
+        echo "      mac: 00:00:00:00:00:00"
+        echo "      ip: $WORKER_IP_BASE$nextip"
+        echo "      os: prod-worker"
         ((++i))
     done
     } >> $machineYmlFile
@@ -229,7 +229,7 @@ function generateMachinesYml()
 function updateConfigFile()
 {
     echo "Updating cloud-config.yml file"
-    
+
     cp $PHILLY_HOME/azure.yml $PHILLY_HOME/azure.yml.orig
     if [[ "$CLUSTERYML" == "none" ]] ; then
         echo "Using the image's cluster yml file $PHILLY_HOME/azure.yml"
@@ -239,15 +239,15 @@ function updateConfigFile()
         cluster=$(grep -m 1 "id: " gcr.yml | awk -F" " '{print $2}')
     fi
 
-    cp $PHILLY_HOME/cloud-config.yml $PHILLY_HOME/cloud-config.yml.orig   
+    cp $PHILLY_HOME/cloud-config.yml $PHILLY_HOME/cloud-config.yml.orig
     if [[ "$CLOUDCONFIG" == "none" ]] ; then
         echo "Using the image's cloud config template $PHILLY_HOME/cloud-config.yml.template"
     else
         wget $CLOUDCONFIG -O $PHILLY_HOME/cloud-config.yml.template
-    fi   
+    fi
 
     $PHILLY_HOME/tools/generate-config -c $PHILLY_HOME/azure.yml --host $NAME -t $PHILLY_HOME/cloud-config.yml.template > $PHILLY_HOME/cloud-config.yml
-    
+
     echo "Finished updating cloud-config.yml file"
 }
 
@@ -269,7 +269,7 @@ function slurmMasterSetup()
     chmod o+w /var/spool # Write access for slurmctld log. Consider switch log file to another location
 
     # Start the master daemon service
-    sudo -u slurm /usr/sbin/slurmctld 
+    sudo -u slurm /usr/sbin/slurmctld
     munged --force
     slurmd
 
@@ -287,7 +287,7 @@ function slurmMasterSetup()
 
         second=0
         while [ -n "$(echo a|ncat $worker 8090 2>&1)" ]; do
-            ((second += 5))                  
+            ((second += 5))
             sleep 5
         done
 
@@ -367,7 +367,7 @@ function applyCloudConfig()
         if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
             echo "core ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
         fi
-        
+ 
         #Wait for fleet to be ready
         while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 5; done
         cp $PHILLY_HOME/cloud-config.yml /var/lib/coreos-install/user_data
@@ -392,8 +392,8 @@ function applyCloudConfig()
 
 function startCoreServices()
 {
-    if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
-        
+    if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
+
         #Push cluster config to ETCD
         $PHILLY_HOME/tools/pcm -e localhost -c $PHILLY_HOME/azure.yml pushcfg
 
@@ -401,7 +401,7 @@ function startCoreServices()
         etcdctl set /activeNameNode $INFRA_BASE_NAME$masterIndex
 
         etcdctl mkdir /eventqueue
-        
+
         for service in docker-registry master dns
         do
             fleetctl start $PHILLY_HOME/services/$service.service
@@ -428,7 +428,7 @@ function startCoreServices()
 
 
 function startHadoopServices()
-{  
+{
     if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
         for service in zookeeper hadoop-journal-node hadoop-name-node hadoop-data-node hadoop-resource-manager
         do
@@ -436,10 +436,10 @@ function startHadoopServices()
             while [[ -n $(fleetctl list-units --fields unit,sub | grep $service | grep -E 'dead|start-pre|auto-restart') ]];
             do
                 sleep 5
-            done    
-        done    
+            done
+        done
     fi
-    
+
     if [ "$NAME" == "$WORKER_BASE_NAME$masterIndex" ] ; then
         #
         # workers are part of hadoop data node set, first worker should create the hdfs directory that is needed
@@ -448,8 +448,7 @@ function startHadoopServices()
         while [[ -n $(fleetctl list-units --fields unit,sub | grep hadoop-data-node | grep -E 'dead|start-pre|auto-restart') ]];
         do
             sleep 5
-        done           
-   
+        done
         ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-1:8020/sys/runtimes 2>&1)
         if [[ -n "$ret" ]]; then
             ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-2:8020/sys/runtimes 2>&1)
@@ -467,7 +466,7 @@ function startOtherServices()
         etcdctl mkdir resources/portRangeStart
         etcdctl mkdir viz/requests
         etcdctl mkdir viz/contracts
-        
+ 
         i=0
         while [ $i -lt $INFRA_COUNT ]
         do
@@ -506,7 +505,7 @@ function startOtherServices()
 
             etcdctl mkdir resources/gpu/$WORKER_IP_BASE$nextip
             etcdctl mkdir resources/port/$WORKER_IP_BASE$nextip
-            etcdctl mkdir resources/portRangeStart/$WORKER_IP_BASE$nextip       
+            etcdctl mkdir resources/portRangeStart/$WORKER_IP_BASE$nextip
             ((++i))
         done
 
@@ -537,7 +536,7 @@ function startNfs()
     #
     if [[ $(etcdctl get /config/machines/$NAME/role) == "nfs" ]];
     then
-        
+ 
         fleetctl start $PHILLY_HOME/services/nfs-mount
 
         #all nfs-mount should be in 'exited' status
