@@ -7,7 +7,7 @@ fi
 
 echo "Script arguments: $*"
 
-if [ $# != 4 ]; then
+if [ $# != 3 ]; then
     echo "Usage: $0 <Load_Balancer_IP> <AdminUserName> <WorkerSKU>"
     exit 1
 fi
