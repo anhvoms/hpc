@@ -97,6 +97,9 @@ function applyCloudConfig()
 
 function enableRDMA()
 {
+    WORKERNODE_SKU=${WORKERNODE_SKU,,} #switch to lowercase
+    WORKERNODE_SKU=${WORKERNODE_SKU//_/-} #change dash into underscore
+    
     if [[ "$WORKERNODE_SKU" == "standard-nc24rs-v2" ]];
     then
         {
