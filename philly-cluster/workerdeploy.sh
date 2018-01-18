@@ -72,7 +72,7 @@ function initialSetup()
 function applyCloudConfig()
 {
     mkdir -p /var/lib/coreos-install
-    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$NAME.yml?reconfigure" -o /var/lib/coreos-install/user_data
+    curl "http://$LOAD_BALANCER_IP/cloud-config/$NAME.yml?reconfigure" -o /var/lib/coreos-install/user_data
     [ -f "/var/lib/coreos-install/user_data" ] && coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
 
     if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
@@ -90,6 +90,8 @@ function applyCloudConfig()
         echo "#coreos-cloudinit generates a phillyresolv.conf file that we should use"
         echo "cp /etc/phillyresolv.conf /etc/resolv.conf"
     } >> /etc/rc.local
+
+    /etc/init.d/docker restart
 }
 
 
