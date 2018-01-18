@@ -7,13 +7,12 @@ fi
 
 echo "Script arguments: $*"
 
-if [ $# != 20 ]; then
-    echo "Usage: $0 <InfraCount> <AdminUserName> <AdminPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerCount> <WorkerIpBase> <WorkerIpStart> <AuxBaseName> <AuxNodeCount> <AuxIpBase> <AuxIpStart> <TemplateBaseUrl> <InfraSKU> <WorkerSKU> <AuxSKU> <ClusterYmlUrl> <CloudConfigTemplate>"
+if [ $# != 21 ]; then
+    echo "Usage: $0 <InfraCount> <AdminUserName> <AdminPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerCount> <WorkerIpBase> <WorkerIpStart> <AuxBaseName> <AuxNodeCount> <AuxIpBase> <AuxIpStart> <TemplateBaseUrl> <InfraSKU> <WorkerSKU> <AuxSKU> <ClusterYmlUrl> <CloudConfigTemplate> <ClusterId>"
     exit 1
 fi
 
 NAME=$(hostname)
-IP=$(ifconfig eth0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1')
 
 isWorker=0
 if [[ $NAME == *"worker"* ]]; then isWorker=1; fi
@@ -47,11 +46,10 @@ WORKERNODE_SKU=${17}
 AUXNODE_SKU=${18}
 CLUSTERYML=${19}
 CLOUDCONFIG=${20}
+CLUSTER=${21}
 
 PHILLY_HOME=/var/lib/philly
 masterIndex=0
-cluster=eu1
-
 
 function startService()
 {
@@ -268,10 +266,10 @@ function updateConfigFile()
     cp $PHILLY_HOME/azure.yml $PHILLY_HOME/azure.yml.orig
     if [[ "$CLUSTERYML" == "none" ]] ; then
         echo "Using the image's cluster yml file $PHILLY_HOME/azure.yml"
-        sed -i "s/__CLUSTER__/$cluster/g" $PHILLY_HOME/azure.yml
+        sed -i "s/__CLUSTER__/$CLUSTER/g" $PHILLY_HOME/azure.yml
     else
         wget $CLUSTERYML -O $PHILLY_HOME/azure.yml
-        cluster=$(grep -m 1 "id: " gcr.yml | awk -F" " '{print $2}')
+        CLUSTER=$(grep -m 1 "id: " gcr.yml | awk -F" " '{print $2}')
     fi
 
     cp $PHILLY_HOME/cloud-config.yml $PHILLY_HOME/cloud-config.yml.orig
@@ -372,7 +370,7 @@ function updateResolvConf()
     azureInternalDomain=$(grep search /etc/resolv.conf | awk -F" " '{print $2}')
     cp /etc/resolv.conf /etc.resolv.conf.philly.bak
     cp /etc/phillyresolv.conf /etc/resolv.conf
-    sed -i "s/search $cluster.philly.selfhost.corp.microsoft.com/search $cluster.philly.selfhost.corp.microsoft.com $azureInternalDomain/g" /etc/resolv.conf
+    sed -i "s/search $CLUSTER.philly.selfhost.corp.microsoft.com/search $CLUSTER.philly.selfhost.corp.microsoft.com $azureInternalDomain/g" /etc/resolv.conf
 
     #at this point dns is up, so we remove the infra and master entry from hosts file
     sed -i "s/127.0.0.1 localhost infra/127.0.0.1 localhost/g" /etc/hosts
@@ -395,33 +393,24 @@ function setupSlurm()
 function applyCloudConfig()
 {
     mkdir -p /var/lib/coreos-install
-#    if [[ $isInfra -eq 1 ]];
-#    then
-        #Applying cloud config
-        coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
-        if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
-            echo "core ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-        fi
- 
-        #Wait for fleet to be ready
-        while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 5; done
-        cp $PHILLY_HOME/cloud-config.yml /var/lib/coreos-install/user_data
-#    else
-#        [ ! -f "/var/lib/coreos-install/user_data" ] &&
-#            sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$NAME.yml?reconfigure" -o /var/lib/coreos-install/user_data
-#        [ -f "/var/lib/coreos-install/user_data" ] &&
-#            coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
-#    fi
+    coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
+    if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
+        echo "core ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+    fi
+    
+    #Wait for fleet to be ready
+    while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 5; done
+    cp $PHILLY_HOME/cloud-config.yml /var/lib/coreos-install/user_data
 
     sed -i "s/exit 0//g" /etc/rc.local
-        {
-            echo '[ ! -f "/var/lib/coreos-install/user_data" ] &&'
-            echo '    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$(hostname).yml?reconfigure" -o /var/lib/coreos-install/user_data'
-            echo '[ -f "/var/lib/coreos-install/user_data" ] &&'
-            echo '    coreos-cloudinit --from-file=/var/lib/coreos-install/user_data'
-            echo "#coreos-cloudinit generates a phillyresolv.conf file that we should use"
-            echo "cp /etc/phillyresolv.conf /etc/resolv.conf"
-        } >> /etc/rc.local
+    {
+        echo '[ ! -f "/var/lib/coreos-install/user_data" ] &&'
+        echo '    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$(hostname).yml?reconfigure" -o /var/lib/coreos-install/user_data'
+        echo '[ -f "/var/lib/coreos-install/user_data" ] &&'
+        echo '    coreos-cloudinit --from-file=/var/lib/coreos-install/user_data'
+        echo "#coreos-cloudinit generates a phillyresolv.conf file that we should use"
+        echo "cp /etc/phillyresolv.conf /etc/resolv.conf"
+    } >> /etc/rc.local
 }
 
 
@@ -444,8 +433,18 @@ function startCoreServices()
         done
         updateResolvConf
 
-        startServiceWaitForRunning webserver
+        #Wait for all infrastructure nodes to come up
+        #if upinfra is not up webserver will start ok but not answering http request
+        i=0
+        while [ $i -lt $INFRA_COUNT ]
+        do
+            nextip=$((i + INFRA_IP_START))
+            dnsServer=$INFRA_IP_BASE$nextip
+            until nslookup upinfra $dnsServer; do sleep 5; done;
+        done
         
+        startServiceWaitForRunning webserver
+       
     else
         updateResolvConf
     fi
@@ -495,13 +494,14 @@ function startOtherServices()
         etcdctl mkdir resources/portRangeStart
         etcdctl mkdir viz/requests
         etcdctl mkdir viz/contracts
+        etcdctl mkdir jobs/pnrsy
  
         i=0
         while [ $i -lt $INFRA_COUNT ]
         do
             nextip=$((i + INFRA_IP_START))
             etcdctl mkdir stateMachine/$INFRA_BASE_NAME$i
-            etcdctl mk stateMachine/$INFRA_BASE_NAME$i/currentState UP
+            etcdctl mk stateMachine/$INFRA_BASE_NAME$i/currentState "UP/ok"
             etcdctl mk stateMachine/$INFRA_BASE_NAME$i/goalState UP
 
             etcdctl mkdir resources/gpu/$INFRA_IP_BASE$nextip
@@ -580,11 +580,8 @@ function startNfs()
 initialSetup
 fixHostsFile
 
-#if [[ $isInfra -eq 1 ]];
-#then
-    generateMachinesYml
-    updateConfigFile
-#fi
+generateMachinesYml
+updateConfigFile
 setupSlurm
 
 applyCloudConfig

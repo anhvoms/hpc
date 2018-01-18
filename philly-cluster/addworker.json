@@ -1,0 +1,316 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUserName": {
+      "type": "string",
+      "defaultValue": "philly",
+      "metadata": {
+        "description": "User name for the Virtual Machine. Pick a valid username otherwise there will be a BadRequest error."
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Admin password. Pick a complex password with uppercase letters, lowercase letters, digits, and symbols. The password should not be longer than 16. Otherwise you'll get a BadRequest error."
+      }
+    },
+    "workerNodeSize": {
+      "type": "string",
+      "defaultValue": "Standard_NC24rs_v2",
+      "allowedValues": [
+        "Standard_D12",
+        "Standard_D12_v2",
+        "Standard_D13_v2",
+        "Standard_D14_v2",
+        "Standard_D15_v2",
+        "Standard_DS12_v2",
+        "Standard_NC6",
+        "Standard_NC12",
+        "Standard_NC24",
+        "Standard_NC24r",
+        "Standard_NC6s_v2",
+        "Standard_NC12s_v2",
+        "Standard_NC24s_v2",
+        "Standard_NC24rs_v2"
+      ],
+      "metadata": {
+        "description": "Size of the worker nodes."
+      }
+    },
+    "workerNodeCount": {
+      "type": "int",
+      "defaultValue": 2,
+      "minValue": 2,
+      "maxValue": 100,
+      "metadata": {
+        "description": "Specify the number of worker nodes."
+      }
+    },
+    "workerStartIndex": {
+      "type": "int",
+      "defaultValue": 50,
+      "metadata": {
+        "description": "Specify the starting index for this set of workers."
+      }
+    },
+    "OSImage": {
+      "type": "string",
+      "defaultValue": "provide_your_image_id_string",
+      "metadata": {
+        "description": "Image to use for all instances of the infrastructure nodes."
+      }
+    },
+    "loadBalancerIP": {
+      "type": "string",
+      "defaultValue": "10.0.0.4",
+      "metadata": {
+        "description": "Provide IP address of load balancer for pulling config."
+        }
+    },
+    "avSet": {
+      "type": "string",
+      "defaultValue": "existing_avSet",
+      "metadata": {
+        "description": "Provide an existing resource id for an availability set."
+      }
+    },
+    "subnet": {
+      "type": "string",
+      "defaultValue": "existing_vnet_subnet",
+      "metadata": {
+        "description": "Provide an existing resource id for a subnet."
+        }
+    }
+  },
+  "variables": {
+    "workerVMName": "pworker",
+    "armApiVersion": "2015-06-15",
+    "computeApiVersion": "2016-04-30-preview",
+    "avSetName": "avSet",
+    "nicName": "nic",
+    "offset":5,
+    "base":"10.0.",
+    "maxWorkerIP":240,
+    "startIndex": "[add(parameters('workerStartIndex'),variables('offset')]",
+    "thirdOctet1": "[div(variables('realIndex'),240)]",
+    "thirdOctet2": "[add(variables('thirdOctet1'),1)]",
+    "overflow": "[if(greaterOrEquals(add(variables('startIndex'),parameters('workerNodeCount')),variables('maxWorkerIP'), 1, 0)]",
+    "beginIPIndex":"[mod(variables('realIndex'),variables('maxWorkerIP))]",
+    "firstCount":"[if(equals(variables('overflow'),0),parameters('workerNodeCount'),sub(variables('maxWorkerIP'),variables('beginIPIndex')))]",
+    "secondStartIndex":"[add(parameters('workerStartIndex'),variables('firstCount')]",
+    "secondCount":"[if(equals(variables('overflow'),0),0,sub(parameters('workerNodeCount'),variables('firstCount')))]",
+    "templateBaseUrl": "https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/"
+  },
+  "resources": [
+    {
+      "apiVersion": "[variables('armApiVersion')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(variables('nicName'), 'worker', copyindex(parameters('workerStartIndex')))]",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "workerNicCopy1",
+        "count": "[variables('firstCount')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat(variables('base'), variables('thirdOctet1'), '.', copyindex(variables('beginIPIndex')))]",
+              "subnet": {
+                "id": "[parameters('subnet')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('computeApiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(variables('workerVMName'), copyindex(parameters('workerStartIndex')))]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', copyindex(parameters('workerStartIndex')))]"
+      ],
+      "copy": {
+        "name": "workerVMCopy1",
+        "count": "[variables('firstCount')]"
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[parameters('avSet')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('workerNodeSize')]"
+        },
+        "osProfile": {
+          "computername": "[concat(variables('workerVMName'), copyindex(parameters('workerStartIndex')))]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('OSImage')]"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "diskSizeGB": 1023,
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          },
+          "dataDisks": [
+            {
+              "createOption": "Empty",
+              "lun": 0,
+              "diskSizeGB": 1023,
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              }
+            }
+          ]                      
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', copyindex(parameters('workerStartIndex'))))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "[variables('computeApiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('workerVMName'), copyindex(parameters('workerStartIndex')), '/Installation')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), copyindex(parameters('workerStartIndex')))]"
+      ],
+      "copy": {
+        "name": "workerExtCopy1",
+        "count": "[variables('firstCount')]"
+      },
+      "properties": {
+        "publisher": "Microsoft.OSTCExtensions",
+        "type": "CustomScriptForLinux",
+        "typeHandlerVersion": "1.3",
+        "settings": {
+          "fileUris": [
+            "[concat(variables('templateBaseUrl'), 'workerdeploy.sh')]"
+          ],
+          "commandToExecute": "[concat('bash workerdeploy.sh', ' ', parameters('loadBalancerIP'), ' ', parameters('adminUserName'), ' ', parameters('workerNodeSize'))]"
+        }
+      }
+    },
+    {
+      "apiVersion": "[variables('armApiVersion')]",
+      "condition": "[equals(variables('overflow'),1)]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(variables('nicName'), 'worker', copyindex(variables('secondStartIndex')))]",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "workerNicCopy2",
+        "count": "[variables('secondCount')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat(variables('base'), variables('thirdOctet2'), '.', copyindex())]",
+              "subnet": {
+                "id": "[parameters('subnet')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('computeApiVersion')]",
+      "condition": "[equals(variables('overflow'),1)]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(variables('workerVMName'), copyindex(variables('secondStartIndex')))]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', copyindex(variables('secondStartIndex')))]"
+      ],
+      "copy": {
+        "name": "workerVMCopy2",
+        "count": "[variables('secondCount')]"
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[parameters('avSet')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('workerNodeSize')]"
+        },
+        "osProfile": {
+          "computername": "[concat(variables('workerVMName'), copyindex(variables('secondStartIndex')))]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('OSImage')]"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "diskSizeGB": 1023,
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          },
+          "dataDisks": [
+            {
+              "createOption": "Empty",
+              "lun": 0,
+              "diskSizeGB": 1023,
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              }
+            }
+          ]                      
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', copyindex(variables('secondStartIndex'))))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "[variables('computeApiVersion')]",
+      "condition": "[equals(variables('overflow'),1)]",      
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('workerVMName'), copyindex(variables('secondStartIndex')), '/Installation')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), copyindex(variables('secondStartIndex')))]"
+      ],
+      "copy": {
+        "name": "workerExtCopy2",
+        "count": "[variables('secondCount')]"
+      },
+      "properties": {
+        "publisher": "Microsoft.OSTCExtensions",
+        "type": "CustomScriptForLinux",
+        "typeHandlerVersion": "1.3",
+        "settings": {
+          "fileUris": [
+            "[concat(variables('templateBaseUrl'), 'workerdeploy.sh')]"
+          ],
+          "commandToExecute": "[concat('bash workerdeploy.sh', ' ', parameters('loadBalancerIP'), ' ', parameters('adminUserName'), ' ', parameters('workerNodeSize'))]"
+        }
+      }
+    }
+  ]
+}
