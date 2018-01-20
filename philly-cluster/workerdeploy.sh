@@ -47,6 +47,7 @@ function initialSetup()
     usermod -a -G systemd-journal $ADMIN_USERNAME
     usermod -a -G docker $ADMIN_USERNAME
     mkdir /var/nfsshare
+    mkdir /var/nfs-mount
 
     #if there is a datadisk mounted on sdc we partition it and format it
     if [[ -z $(fdisk -l /dev/sdc 2>&1 | grep "cannot open") ]];
