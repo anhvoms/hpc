@@ -13,6 +13,7 @@ if [ $# != 3 ]; then
 fi
 
 NAME=$(hostname)
+IP=$(ifconfig eth0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1')
 
 LOAD_BALANCER_IP=$1
 ADMIN_USERNAME=$2
@@ -93,6 +94,16 @@ function applyCloudConfig()
 }
 
 
+function updateStateMachineStatus()
+{
+    etcdctl mkdir /stateMachine/$NAME
+    etcdctl set /stateMachine/$NAME/currentState "UP/ok"
+    etcdctl set /stateMachine/$NAME/goalState UP
+    etcdctl mkdir /resources/gpu/$IP
+    etcdctl mkdir /resources/port/$IP
+    etcdctl mkdir /resources/portRangeStart/$IP
+}
+
 function enableRDMA()
 {
     WORKERNODE_SKU=${WORKERNODE_SKU,,} #switch to lowercase
@@ -110,4 +121,5 @@ function enableRDMA()
 
 initialSetup
 applyCloudConfig
+updateStateMachineStatus
 enableRDMA
