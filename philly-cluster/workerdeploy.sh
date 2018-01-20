@@ -79,16 +79,13 @@ function applyCloudConfig()
         echo "core ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
     fi
     
-    cp /etc/phillyresolv.conf /etc/resolv.conf
-    
     sed -i "s/exit 0//g" /etc/rc.local
     {
+        echo "LOAD_BALANCER_IP=$LOAD_BALANCER_IP"
         echo '[ ! -f "/var/lib/coreos-install/user_data" ] &&'
         echo '    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$(hostname).yml?reconfigure" -o /var/lib/coreos-install/user_data'
         echo '[ -f "/var/lib/coreos-install/user_data" ] &&'
         echo '    coreos-cloudinit --from-file=/var/lib/coreos-install/user_data'
-        echo "#coreos-cloudinit generates a phillyresolv.conf file that we should use"
-        echo "cp /etc/phillyresolv.conf /etc/resolv.conf"
     } >> /etc/rc.local
 
     /etc/init.d/docker restart

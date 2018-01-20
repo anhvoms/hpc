@@ -364,13 +364,22 @@ function updateResolvConf()
         do
             sleep 5
         done
+    
+        #Wait for all infrastructure nodes to come up
+        #if upinfra is not up webserver will start ok but not answering http request
+        i=0
+        while [ $i -lt $INFRA_COUNT ]
+        do
+            nextip=$((i + INFRA_IP_START))
+            dnsServer=$INFRA_IP_BASE$nextip
+            until nslookup upinfra $dnsServer; do sleep 5; done;
+        done
+        
+        #Rewrite /etc/resolv.conf after dns is up
+        azureInternalDomain=$(grep search /etc/resolv.conf | awk -F' ' '{print $2}')
+        cp /var/lib/philly/newresolv.conf /etc/resolv.conf
+        sed -i "s/search $CLUSTER.philly.selfhost.corp.microsoft.com/search $CLUSTER.philly.selfhost.corp.microsoft.com $azureInternalDomain/g" /etc/resolv.conf
     fi
-
-    #Rewrite /etc/resolv.conf after dns is up
-    azureInternalDomain=$(grep search /etc/resolv.conf | awk -F" " '{print $2}')
-    cp /etc/resolv.conf /etc.resolv.conf.philly.bak
-    cp /etc/phillyresolv.conf /etc/resolv.conf
-    sed -i "s/search $CLUSTER.philly.selfhost.corp.microsoft.com/search $CLUSTER.philly.selfhost.corp.microsoft.com $azureInternalDomain/g" /etc/resolv.conf
 
     #at this point dns is up, so we remove the infra and master entry from hosts file
     sed -i "s/127.0.0.1 localhost infra/127.0.0.1 localhost/g" /etc/hosts
@@ -393,10 +402,25 @@ function setupSlurm()
 function applyCloudConfig()
 {
     mkdir -p /var/lib/coreos-install
+    
+    if [[ $isInfra -eq 1 ]];
+    then
+        #Backup our /etc/resolv.conf because cloud-config will overwrite it and
+        #we can't use that one yet
+        cp /etc/resolv.conf /var/lib/philly/resolv.conf
+    fi
+
     coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
     if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
         echo "core ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
     fi
+
+    if [[ $isInfra -eq 1 ]];
+    then
+           #Save the newly generated /etc/resolv.conf
+           cp /etc/resolv.conf /var/lib/philly/newresolv.conf
+           cp /var/lib/philly/resolv.conf /etc/resolv.conf
+    fi   
     
     #Wait for fleet to be ready
     while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 5; done
@@ -404,12 +428,11 @@ function applyCloudConfig()
 
     sed -i "s/exit 0//g" /etc/rc.local
     {
+        echo "LOAD_BALANCER_IP=$LOAD_BALANCER_IP"                
         echo '[ ! -f "/var/lib/coreos-install/user_data" ] &&'
         echo '    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$(hostname).yml?reconfigure" -o /var/lib/coreos-install/user_data'
         echo '[ -f "/var/lib/coreos-install/user_data" ] &&'
         echo '    coreos-cloudinit --from-file=/var/lib/coreos-install/user_data'
-        echo "#coreos-cloudinit generates a phillyresolv.conf file that we should use"
-        echo "cp /etc/phillyresolv.conf /etc/resolv.conf"
     } >> /etc/rc.local
 }
 
@@ -433,16 +456,6 @@ function startCoreServices()
         done
         updateResolvConf
 
-        #Wait for all infrastructure nodes to come up
-        #if upinfra is not up webserver will start ok but not answering http request
-        i=0
-        while [ $i -lt $INFRA_COUNT ]
-        do
-            nextip=$((i + INFRA_IP_START))
-            dnsServer=$INFRA_IP_BASE$nextip
-            until nslookup upinfra $dnsServer; do sleep 5; done;
-        done
-        
         startServiceWaitForRunning webserver
        
     else
