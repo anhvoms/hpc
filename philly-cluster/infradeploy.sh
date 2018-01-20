@@ -105,7 +105,10 @@ function initialSetup()
 
     usermod -a -G systemd-journal $ADMIN_USERNAME
     usermod -a -G docker $ADMIN_USERNAME
-    mkdir /var/nfsshare
+    [[ ! -d /var/nfshare ]] && mkdir /var/nfsshare
+    [[ ! -d /var/nfs-mount ]] && mkdir /var/nfs-mount
+    [[ ! -d /var/gfs ]] && mkdir /var/gfs
+
 
     #if there is a datadisk mounted on sdc we partition it and format it
     if [[ -z $(fdisk -l /dev/sdc 2>&1 | grep "cannot open") ]];
@@ -117,12 +120,11 @@ function initialSetup()
         fi
     fi
 
-    ln -s /bin/mount /usr/bin/mount
-    ln -s /sbin/sysctl /usr/sbin/sysctl
-    ln -s /bin/bash /usr/bin/bash
-    ln -s /bin/true /usr/bin/true
-    ln -s /bin/mount /usr/bin/mount
-    ln -s /bin/chmod /usr/bin/chmod
+    [[ ! -f /usr/bin/mount ]] && ln -s /bin/mount /usr/bin/mount
+    [[ ! -f /usr/sbin/sysctl ]] && ln -s /sbin/sysctl /usr/sbin/sysctl
+    [[ ! -f /usr/bin/bash ]] && ln -s /bin/bash /usr/bin/bash
+    [[ ! -f /usr/bin/true ]] && ln -s /bin/true /usr/bin/true
+    [[ ! -f /usr/bin/chmod ]] && ln -s /bin/chmod /usr/bin/chmod
 
     echo "Initial setup done"
 }
@@ -401,7 +403,7 @@ function setupSlurm()
 
 function applyCloudConfig()
 {
-    mkdir -p /var/lib/coreos-install
+    [[ ! -d /var/lib/coreos-install ]] && mkdir -p /var/lib/coreos-install
     
     if [[ $isInfra -eq 1 ]];
     then
@@ -429,9 +431,9 @@ function applyCloudConfig()
     sed -i "s/exit 0//g" /etc/rc.local
     {
         echo "LOAD_BALANCER_IP=$LOAD_BALANCER_IP"                
-        echo '[ ! -f "/var/lib/coreos-install/user_data" ] &&'
+        echo '[[ ! -f "/var/lib/coreos-install/user_data" ]] &&'
         echo '    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$(hostname).yml?reconfigure" -o /var/lib/coreos-install/user_data'
-        echo '[ -f "/var/lib/coreos-install/user_data" ] &&'
+        echo '[[ -f "/var/lib/coreos-install/user_data" ]] &&'
         echo '    coreos-cloudinit --from-file=/var/lib/coreos-install/user_data'
     } >> /etc/rc.local
 }
