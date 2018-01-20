@@ -96,12 +96,12 @@ function applyCloudConfig()
 
 function updateStateMachineStatus()
 {
-    etcdctl mkdir /stateMachine/$NAME
-    etcdctl set /stateMachine/$NAME/currentState "UP/ok"
-    etcdctl set /stateMachine/$NAME/goalState UP
-    etcdctl mkdir /resources/gpu/$IP
-    etcdctl mkdir /resources/port/$IP
-    etcdctl mkdir /resources/portRangeStart/$IP
+    etcdctl --endpoints "http://$LOAD_BALANCER_IP:4001" mkdir /stateMachine/$NAME
+    etcdctl --endpoints "http://$LOAD_BALANCER_IP:4001" set /stateMachine/$NAME/currentState "UP/ok"
+    etcdctl --endpoints "http://$LOAD_BALANCER_IP:4001" set /stateMachine/$NAME/goalState UP
+    etcdctl --endpoints "http://$LOAD_BALANCER_IP:4001" mkdir /resources/gpu/$IP
+    etcdctl --endpoints "http://$LOAD_BALANCER_IP:4001" mkdir /resources/port/$IP
+    etcdctl --endpoints "http://$LOAD_BALANCER_IP:4001" mkdir /resources/portRangeStart/$IP
 }
 
 function enableRDMA()
