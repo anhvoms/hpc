@@ -220,16 +220,16 @@
                             "privateIPAddress": "[concat(variables('base'), copyindex(variables('ipstart')))]",
                             "subnet": {
                                 "id": "[parameters('subnet')]"
-                            }
+                            },
+                            "loadBalancerBackendAddressPools": [
+                              {
+                                "id": "[concat(variables('lbID'), '/backendAddressPools/BackendPool1')]"
+                              }
+                            ]
                         }
                     }
                 ],
-                "enableAcceleratedNetworking": true,
-                "loadBalancerBackendAddressPools": [
-                    {
-                        "id": "[concat(variables('lbID'), '/backendAddressPools/BackendPool1')]"
-                    }
-                ]
+                "enableAcceleratedNetworking": true
             }
         },
         {
