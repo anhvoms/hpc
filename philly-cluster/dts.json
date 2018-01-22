@@ -1,315 +1,315 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "adminUserName": {
-      "type": "string",
-      "defaultValue": "philly",
-      "metadata": {
-        "description": "User name for the Virtual Machine. Pick a valid username otherwise there will be a BadRequest error."
-      }
-    },
-    "adminPassword": {
-      "type": "securestring",
-      "metadata": {
-        "description": "Admin password. Pick a complex password with uppercase letters, lowercase letters, digits, and symbols. The password should not be longer than 16. Otherwise you'll get a BadRequest error."
-      }
-    },
-    "workerNodeSize": {
-      "type": "string",
-      "defaultValue": "Standard_NC24rs_v2",
-      "allowedValues": [
-        "Standard_D12",
-        "Standard_D12_v2",
-        "Standard_D13_v2",
-        "Standard_D14_v2",
-        "Standard_D15_v2",
-        "Standard_DS12_v2",
-        "Standard_NC6",
-        "Standard_NC12",
-        "Standard_NC24",
-        "Standard_NC24r",
-        "Standard_NC6s_v2",
-        "Standard_NC12s_v2",
-        "Standard_NC24s_v2",
-        "Standard_NC24rs_v2"
-      ],
-      "metadata": {
-        "description": "Size of the worker nodes."
-      }
-    },
-    "workerNodeCount": {
-      "type": "int",
-      "defaultValue": 2,
-      "minValue": 2,
-      "maxValue": 100,
-      "metadata": {
-        "description": "Specify the number of worker nodes."
-      }
-    },
-    "workerStartIndex": {
-      "type": "int",
-      "defaultValue": 50,
-      "metadata": {
-        "description": "Specify the starting index for this set of workers."
-      }
-    },
-    "OSImage": {
-      "type": "string",
-      "defaultValue": "provide_your_image_id_string",
-      "metadata": {
-        "description": "Image to use for all instances of the infrastructure nodes."
-      }
-    },
-    "loadBalancerIP": {
-      "type": "string",
-      "defaultValue": "10.0.0.4",
-      "metadata": {
-        "description": "Provide IP address of internal load balancer for pulling config."
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "philly",
+            "metadata": {
+                "description": "User name for the Virtual Machine. Pick a valid username otherwise there will be a BadRequest error."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Admin password. Pick a complex password with uppercase letters, lowercase letters, digits, and symbols. The password should not be longer than 16. Otherwise you'll get a BadRequest error."
+            }
+        },
+        "workerNodeSize": {
+            "type": "string",
+            "defaultValue": "Standard_NC24rs_v2",
+            "allowedValues": [
+                "Standard_D12",
+                "Standard_D12_v2",
+                "Standard_D13_v2",
+                "Standard_D14_v2",
+                "Standard_D15_v2",
+                "Standard_DS12_v2",
+                "Standard_NC6",
+                "Standard_NC12",
+                "Standard_NC24",
+                "Standard_NC24r",
+                "Standard_NC6s_v2",
+                "Standard_NC12s_v2",
+                "Standard_NC24s_v2",
+                "Standard_NC24rs_v2"
+            ],
+            "metadata": {
+                "description": "Size of the worker nodes."
+            }
+        },
+        "workerNodeCount": {
+            "type": "int",
+            "defaultValue": 2,
+            "minValue": 2,
+            "maxValue": 100,
+            "metadata": {
+                "description": "Specify the number of worker nodes."
+            }
+        },
+        "workerStartIndex": {
+            "type": "int",
+            "defaultValue": 50,
+            "metadata": {
+                "description": "Specify the starting index for this set of workers."
+            }
+        },
+        "OSImage": {
+            "type": "string",
+            "defaultValue": "provide_your_image_id_string",
+            "metadata": {
+                "description": "Image to use for all instances of the infrastructure nodes."
+            }
+        },
+        "loadBalancerIP": {
+            "type": "string",
+            "defaultValue": "10.0.0.4",
+            "metadata": {
+                "description": "Provide IP address of internal load balancer for pulling config."
+            }
+        },
+        "subnet": {
+            "type": "string",
+            "defaultValue": "existing_vnet_subnet",
+            "metadata": {
+                "description": "Provide an existing resource id for a subnet."
+            }
         }
     },
-    "subnet": {
-      "type": "string",
-      "defaultValue": "existing_vnet_subnet",
-      "metadata": {
-        "description": "Provide an existing resource id for a subnet."
+    "variables": {
+        "publicIPAddressType": "Dynamic",
+        "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses','publicipDTS')]",
+        "loadBalancerName": "masterlb",
+        "lbID": "[resourceId('Microsoft.Network/loadBalancers',variables('loadBalancerName'))]",
+        "frontEndIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/LoadBalancerFrontEnd')]",
+        "lbPoolID": "[concat(variables('lbID'),'/backendAddressPools/BackendPool1')]",
+        "lbProbeID": "[concat(variables('lbID'),'/probes/tcpProbe')]",
+        "workerVMName": "pdts",
+        "armApiVersion": "2016-09-01",
+        "computeApiVersion": "2016-04-30-preview",
+        "avSetName": "avSet",
+        "nicName": "nic",
+        "base": "10.0.2.",
+        "ipstart": 240,
+        "firstCount": "[parameters('workerNodeCount')]",
+        "templateBaseUrl": "https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/"
+    },
+    "resources": [
+        {
+            "apiVersion": "2015-05-01-preview",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "publicipDTS",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+            }
+        },
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[variables('avSetName')]",
+            "apiVersion": "[variables('computeApiVersion')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "platformFaultDomainCount": "3",
+                "platformUpdateDomainCount": "5",
+                "managed": "true"
+            }
+        },
+        {
+            "apiVersion": "2015-05-01-preview",
+            "name": "[variables('loadBalancerName')]",
+            "type": "Microsoft.Network/loadBalancers",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', 'publicipDTS')]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "LoadBalancerFrontEnd",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[variables('publicIPAddressID')]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "BackendPool1"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "LBRule",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('frontEndIPConfigID')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[variables('lbPoolID')]"
+                            },
+                            "protocol": "tcp",
+                            "frontendPort": 80,
+                            "backendPort": 80,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 5,
+                            "probe": {
+                                "id": "[variables('lbProbeID')]"
+                            }
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "tcpProbe",
+                        "properties": {
+                            "protocol": "tcp",
+                            "port": 80,
+                            "intervalInSeconds": 5,
+                            "numberOfProbes": 2
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "nsg",
+            "apiVersion": "[variables('armApiVersion')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "SSH",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "apiVersion": "[variables('armApiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('nicName'), 'dts', copyindex())]",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]",
+                "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]",
+                "Microsoft.Network/networkSecurityGroups/nsg"
+            ],
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "dtsNicCopy",
+                "count": "[variables('firstCount')]"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[concat(variables('base'), copyindex(variables('ipstart')))]",
+                            "subnet": {
+                                "id": "[parameters('subnet')]"
+                            }
+                        }
+                    }
+                ],
+                "enableAcceleratedNetworking": true,
+                "loadBalancerBackendAddressPools": [
+                    {
+                        "id": "[concat(variables('lbID'), '/backendAddressPools/BackendPool1')]"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('computeApiVersion')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('workerVMName'), copyindex())]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'dts', copyindex())]"
+            ],
+            "copy": {
+                "name": "workerVMCopy",
+                "count": "[variables('firstCount')]"
+            },
+            "properties": {
+                "availabilitySet": {
+                    "id": "[parameters('avSet')]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('workerNodeSize')]"
+                },
+                "osProfile": {
+                    "computername": "[concat(variables('workerVMName'), copyindex())]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "id": "[parameters('OSImage')]"
+                    },
+                    "osDisk": {
+                        "createOption": "FromImage",
+                        "diskSizeGB": 1023,
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        }
+                    },
+                    "dataDisks": [
+                        {
+                            "createOption": "Empty",
+                            "lun": 0,
+                            "diskSizeGB": 1023,
+                            "managedDisk": {
+                                "storageAccountType": "Premium_LRS"
+                            }
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'dts', copyindex()))]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "apiVersion": "[variables('computeApiVersion')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('workerVMName'), copyindex(), '/Installation')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), copyindex())]"
+            ],
+            "copy": {
+                "name": "workerExtCopy1",
+                "count": "[variables('firstCount')]"
+            },
+            "properties": {
+                "publisher": "Microsoft.OSTCExtensions",
+                "type": "CustomScriptForLinux",
+                "typeHandlerVersion": "1.3",
+                "settings": {
+                    "fileUris": [
+                        "[concat(variables('templateBaseUrl'), 'dtsdeploy.sh')]"
+                    ],
+                    "commandToExecute": "[concat('bash dtsdeploy.sh', ' ', parameters('loadBalancerIP'), ' ', parameters('adminUserName'), ' ', parameters('workerNodeSize'))]"
+                }
+            }
         }
-    }
-  },
-  "variables": {
-    "publicIPAddressType": "Dynamic",
-    "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('publicIPAddressName'))]",
-    "loadBalancerName":"masterlb",
-    "lbID": "[resourceId('Microsoft.Network/loadBalancers',variables('loadBalancerName'))]",
-    "frontEndIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/LoadBalancerFrontEnd')]",
-    "lbPoolID": "[concat(variables('lbID'),'/backendAddressPools/BackendPool1')]",
-    "lbProbeID": "[concat(variables('lbID'),'/probes/tcpProbe')]",
-    "workerVMName": "pdts",
-    "armApiVersion": "2015-06-15",
-    "computeApiVersion": "2016-04-30-preview",
-    "avSetName": "avSet",
-    "nicName": "nic",
-    "base":"10.0.2.",
-    "ipstart":240,
-    "firstCount":"[parameters('workerNodeCount')]",
-    "templateBaseUrl": "https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/"
-  },
-  "resources": [
-    {
-      "apiVersion": "2015-05-01-preview",
-      "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('publicIPAddressName')]",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
-      }
-    },
-    {
-      "type": "Microsoft.Compute/availabilitySets",
-      "name": "[variables('avSetName')]",
-      "apiVersion": "[variables('computeApiVersion')]",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "platformFaultDomainCount": "3",
-        "platformUpdateDomainCount": "5",
-        "managed": "true"
-      }
-    },
-    {
-      "apiVersion": "2015-05-01-preview",
-      "name": "[parameters('lbName')]",
-      "type": "Microsoft.Network/loadBalancers",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('publicIPAddressName'))]"
-      ],
-      "properties": {
-        "frontendIPConfigurations": [
-          {
-            "name": "LoadBalancerFrontEnd",
-            "properties": {
-              "publicIPAddress": {
-                "id": "[variables('publicIPAddressID')]"
-              }
-            }
-          }
-        ],
-        "backendAddressPools": [
-          {
-            "name": "BackendPool1"
-          }
-        ],
-        "loadBalancingRules": [
-          {
-            "name": "LBRule",
-            "properties": {
-              "frontendIPConfiguration": {
-                "id": "[variables('frontEndIPConfigID')]"
-              },
-              "backendAddressPool": {
-                "id": "[variables('lbPoolID')]"
-              },
-              "protocol": "tcp",
-              "frontendPort": 80,
-              "backendPort": 80,
-              "enableFloatingIP": false,
-              "idleTimeoutInMinutes": 5,
-              "probe": {
-                "id": "[variables('lbProbeID')]"
-              }
-            }
-          }
-        ],
-        "probes": [
-          {
-            "name": "tcpProbe",
-            "properties": {
-              "protocol": "tcp",
-              "port": 80,
-              "intervalInSeconds": 5,
-              "numberOfProbes": 2
-            }
-          }
-        ]
-      }
-    },
-    {
-      "type": "Microsoft.Network/networkSecurityGroups",
-      "name": "nsg",
-      "apiVersion": "[variables('armApiVersion')]",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "securityRules": [
-          {
-            "name": "SSH",
-            "properties": {
-              "protocol": "*",
-              "sourcePortRange": "*",
-              "destinationPortRange": "22",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 100,
-              "direction": "Inbound"
-            }
-          }
-        ]
-      },
-      "dependsOn": []
-    },
-    {
-      "apiVersion": "[variables('armApiVersion')]",
-      "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('nicName'), 'dts', copyindex())]",
-      "dependsOn": [
-        "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]",
-        "Microsoft.Network/networkSecurityGroups/nsg"
-      ],
-      "location": "[resourceGroup().location]",
-      "copy": {
-        "name": "dtsNicCopy",
-        "count": "[variables('firstCount')]"
-      },
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "privateIPAllocationMethod": "Static",
-              "privateIPAddress": "[concat(variables('base'), copyindex(variables('ipstart'))]",
-              "subnet": {
-                "id": "[parameters('subnet')]"
-              }
-            }
-          }
-        ],
-        "enableAcceleratedNetworking": true,
-        "loadBalancerBackendAddressPools": [
-           {
-             "id": "[concat(variables('lbID'), '/backendAddressPools/BackendPool1')]"
-           } 
-         ]
-      }
-    },
-    {
-      "apiVersion": "[variables('computeApiVersion')]",
-      "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('workerVMName'), copyindex()]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'dts', copyindex())]"
-      ],
-      "copy": {
-        "name": "workerVMCopy",
-        "count": "[variables('firstCount')]"
-      },
-      "properties": {
-        "availabilitySet": {
-          "id": "[parameters('avSet')]"
-        },
-        "hardwareProfile": {
-          "vmSize": "[parameters('workerNodeSize')]"
-        },
-        "osProfile": {
-          "computername": "[concat(variables('workerVMName'), copyindex())]",
-          "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "id": "[parameters('OSImage')]"
-          },
-          "osDisk": {
-            "createOption": "FromImage",
-            "diskSizeGB": 1023,
-            "managedDisk": {
-              "storageAccountType": "Premium_LRS"
-            }
-          },
-          "dataDisks": [
-            {
-              "createOption": "Empty",
-              "lun": 0,
-              "diskSizeGB": 1023,
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            }
-          ]                      
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'dts', copyindex()))]"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "apiVersion": "[variables('computeApiVersion')]",
-      "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('workerVMName'), copyindex(), '/Installation')]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), copyindex())]"
-      ],
-      "copy": {
-        "name": "workerExtCopy1",
-        "count": "[variables('firstCount')]"
-      },
-      "properties": {
-        "publisher": "Microsoft.OSTCExtensions",
-        "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.3",
-        "settings": {
-          "fileUris": [
-            "[concat(variables('templateBaseUrl'), 'dtsdeploy.sh')]"
-          ],
-          "commandToExecute": "[concat('bash dtsdeploy.sh', ' ', parameters('loadBalancerIP'), ' ', parameters('adminUserName'), ' ', parameters('workerNodeSize'))]"
-        }
-      }
-    }
-  ]
+    ]
 }
