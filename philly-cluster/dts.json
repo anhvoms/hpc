@@ -83,7 +83,7 @@
     "lbID": "[resourceId('Microsoft.Network/loadBalancers',variables('loadBalancerName'))]",
     "frontEndIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/LoadBalancerFrontEnd')]",
     "lbPoolID": "[concat(variables('lbID'),'/backendAddressPools/BackendPool1')]",
-    "lbProbeID": "[concat(variables('lbID'),'/probes/tcpProbe')]"
+    "lbProbeID": "[concat(variables('lbID'),'/probes/tcpProbe')]",
     "workerVMName": "pdts",
     "armApiVersion": "2015-06-15",
     "computeApiVersion": "2016-04-30-preview",
