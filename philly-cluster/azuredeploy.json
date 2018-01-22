@@ -282,6 +282,24 @@
               "idleTimeoutInMinutes": 15
             },
             "Name": "dns53"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/BackendPool1')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/dns53probe')]"
+              },
+              "protocol": "Udp",
+              "frontendPort": 53,
+              "backendPort": 53,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "dns53Udp"
           }
         ],
         "probes": [
