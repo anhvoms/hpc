@@ -246,7 +246,7 @@
             },
             "properties": {
                 "availabilitySet": {
-                    "id": "[parameters('avSet')]"
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
                 },
                 "hardwareProfile": {
                     "vmSize": "[parameters('workerNodeSize')]"
