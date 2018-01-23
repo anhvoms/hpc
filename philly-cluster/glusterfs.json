@@ -1,0 +1,371 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUser": {
+            "type": "string",
+            "defaultValue": "philly",
+            "metadata": {
+                "description": "Administrator user name used when provisioning virtual machines"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Administrator password used when provisioning virtual machines"
+            }
+        },
+        "subnet": {
+            "type": "string",
+            "metadata": {
+                "description": "The full id of the subnet name that will be used by the network interfaces for nodes"
+            }
+        },
+        "subnetIpBase": {
+            "type": "string",
+            "defaultValue": "10.0.8",
+            "metadata": {
+                "description": "The subnet IP base for nodes"
+            }
+        },
+        "subnetIPOffset":{
+            "type": "int",
+            "defaultValue": 4,
+            "metadata": {
+                "description": "E.g., an offset of 5 with IP Base 10.0.8 means the first VM will start at 10.0.8.5"
+            }
+        },
+        "OSImage": {
+            "type": "string",
+            "defaultValue": "provide_your_image_id_string",
+            "metadata": {
+              "description": "Image to use for all instances of the gluster nodes."
+            }
+        },
+        "nodePrefix": {
+            "type": "string",
+            "defaultValue": "gfs",
+            "metadata": {
+                "description": "The name prefix of nodes provisioned within the cluster"
+            }
+        },
+        "nodeCount": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "The number of nodes provisioned within the cluster"
+            }
+        },
+        "nodeStartIndex": {
+            "type": "int",
+            "defaultValue": 0,
+            "metadata": {
+                "description": "The starting index of nodes provisioned in the cluster (used as a suffix to the node name)"
+            }
+        },
+        "nodeVmSize": {"type": "string",
+            "defaultValue": "Standard_F16s",
+            "allowedValues": [
+                "Standard_F4s",
+                "Standard_F8s",
+                "Standard_F16s"
+            ],
+            "metadata": {
+                "description": "The size of the virtual machines used when provisioning cluster nodes"
+            }
+        },
+        "nodeDataDiskCount": {
+            "type": "int",
+            "metadata": {
+                "description": "This number of data disk attached to a node."
+            }
+        },
+        "nodeDataDiskSize": {
+            "type": "int",
+            "defaultValue": 1023,
+            "metadata": {
+                "description": "Size of each data disk."
+            }
+        },
+        "secondResourceGroup": {
+            "type": "string",
+            "defaultValue": "GlusterFSOverflow",
+            "metadata": {
+                "description": "Provide overflow RG in case number of disks exceeded 800."
+            }
+        },
+        "maxDisksPerRG":{
+            "type": "int",
+            "defaultValue": 750,
+            "metadata": {
+                "description": "Threshold over which to spill into second resource group."
+            }
+        }
+    },
+    "variables": {
+        "availabilitySet": "glusterAVSet",
+        "nodeName": "[parameters('nodePrefix')]",
+        "totalDisks": "[mul(parameters('nodeCount'),add(parameters('nodeDataDiskCount'),1))]",
+        "needSecondRG": "[if(greater(variables('totalDisks'),parameters('maxDisksPerRG')),1,0)]",
+        "firstRGCount": "[if(equals(variables('needSecondRG'),1), div(parameters('nodeCount'),2),parameters('nodeCount'))]",
+        "secondRGCount": "[if(equals(variables('needSecondRG'),1),1,sub(parameters('nodeCount'), variables('firstRGCount'))]",
+        "secondStartIndex": "[add(parameters('nodeStartIndex'), variables('firstRGCount'))]",
+        "cmdToExecute": "[concat('./glusterfs_bootstrap.sh ', parameters('nodePrefix'), ' ',  parameters('subnetIpBase'), ' ', parameters('subnetIPOffset'), ' ', parameters('nodeCount'))]",
+        "remoteBootstrapLink":"https://raw.githubusercontent.com/Azure/batch-shipyard/master/scripts/setupgluster.sh",
+        "remoteFSLink": "https://raw.githubusercontent.com/Azure/batch-shipyard/master/scripts/shipyard_remotefs_bootstrap.sh",
+        "scripts": [
+            "[variables('remoteFSLink')]",
+            "[variables('remoteBootstrapLink')]"
+        ]
+    },
+    "resources": [
+        {
+            "comments": "# Create AvailabilitySet for GlusterFS cluster nodes",
+            "type": "Microsoft.Compute/availabilitySets",
+            "apiVersion": "2016-04-30-preview",
+            "name": "[variables('availabilitySet')]",
+            "location": "[resourceGroup().location]",
+            "sku": { "name": "Aligned" },
+            "properties": {
+                "platformFaultDomainCount": 2,
+                "platformUpdateDomainCount": 8
+            }
+        },
+        {
+            "comments": "# Create Overflow AvailabilitySet for GlusterFS cluster nodes",
+            "condition": "[equals(variables('needSecondRG'),1)]",
+            "resourceGroup":"[parameters('secondResourceGroup')]",
+            "type": "Microsoft.Compute/availabilitySets",
+            "apiVersion": "2016-04-30-preview",
+            "name": "[variables('availabilitySet')]",
+            "location": "[resourceGroup().location]",
+            "sku": { "name": "Aligned" },
+            "properties": {
+                "platformFaultDomainCount": 2,
+                "platformUpdateDomainCount": 8
+            }
+        },
+        {
+            "comments": "# Create Network Interfaces for GlusterFS cluster nodes",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2017-06-01",
+            "name": "[concat(variables('nodeName'), '-NIC', copyIndex(parameters('nodeStartIndex')))]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "VmNicCopyLoop",
+                "count": "[variables('firstRGCount')]"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[concat(parameters('subnetIpBase'), '.', copyIndex(add(parameters('nodeStartIndex'), parameters('subnetIPOffset'))))]",
+                            "subnet": "[parameters('subnet')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "comments": "# Create Overflow Network Interfaces for GlusterFS cluster nodes",
+            "condition": "[equals(variables('needSecondRG'),1)]",
+            "resourceGroup":"[parameters('secondResourceGroup')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2017-06-01",
+            "name": "[concat(variables('nodeName'), '-NIC', copyIndex(variables('secondStartIndex')))]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "VmNicCopyLoop",
+                "count": "[variables('secondRGCount')]"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[concat(parameters('subnetIpBase'), '.', copyIndex(add(variables('secondStartIndex'), parameters('subnetIPOffset'))))]",
+                            "subnet": "[parameters('subnet')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "comments": "# Create GlusterFS cluster nodes",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2017-03-30",
+            "name": "[concat(variables('nodeName'), '-vm', copyIndex(parameters('nodeStartIndex')))]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "VmCopyLoop",
+                "count": "[variables('firstRGCount')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('nodeName'), '-NIC', copyIndex(parameters('nodeStartIndex')))]"
+            ],
+            "properties": {
+                "availabilitySet": { "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet'))]" },
+                "hardwareProfile": { "vmSize": "[parameters('nodeVmSize')]" },
+                "osProfile": {
+                    "computerName": "[concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex')))]",
+                    "adminUsername": "[parameters('adminUser')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nodeName'), '-NIC', copyIndex(parameters('nodeStartIndex'))))]"
+                        }
+                    ]
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "id": "[parameters('OSImage')]"
+                      },
+                    "osDisk":{
+                        "name": "[concat(concat(variables('nodeName'), '-vm', copyIndex(parameters('nodeStartIndex'))), '-OsDisk')]",
+                        "osType": "Linux",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "diskSizeGB": "[parameters('nodeDataDiskSize')]",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                          }
+                    },
+                    "copy": [
+                        {
+                            "name": "dataDisks",
+                            "count": "[parameters('nodeDataDiskCount')]",
+                            "input": {
+                                "name": "[concat(concat(variables('nodeName'), '-vm', copyIndex(parameters('nodeStartIndex'))), '-DataDisk', copyIndex('dataDisks'))]",
+                                "lun": "[copyIndex('dataDisks')]",
+                                "diskSizeGB": "[parameters('nodeDataDiskSize')]",
+                                "caching": "ReadOnly",
+                                "createOption": "Empty",
+                                "managedDisk": {
+                                    "storageAccountType": "Premium_LRS"
+                                  }
+                            }
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "comments": "# Do configuration for GlusterFS nodes",
+                    "type": "extensions",
+                    "apiVersion": "2017-03-30",
+                    "name": "InstallGlusterFS",
+                    "location": "[resourceGroup().location]",
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "fileUris": "[variables('scripts')]"
+                        },
+                        "protectedSettings": {
+                            "commandToExecute": "[variables('cmdToExecute')]"
+                        }
+                    },
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('nodeName'), '-vm', copyIndex(parameters('nodeStartIndex'))))]"
+                    ]
+                }
+            ]
+        },
+        {
+            "comments": "# Create Overflow GlusterFS cluster nodes",
+            "condition": "[equals(variables('needSecondRG'),1)]",
+            "resourceGroup":"[parameters('secondResourceGroup')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2017-03-30",
+            "name": "[concat(variables('nodeName'), '-vm', copyIndex(variables('secondStartIndex')))]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "VmCopyLoop",
+                "count": "[variables('secondRGCount')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('nodeName'), '-NIC', copyIndex(variables('secondStartIndex')))]"
+            ],
+            "properties": {
+                "availabilitySet": { "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet'))]" },
+                "hardwareProfile": { "vmSize": "[parameters('nodeVmSize')]" },
+                "osProfile": {
+                    "computerName": "[concat(variables('nodeName'), if(greater(copyIndex(variables('secondStartIndex')),9),'-vm0','-vm00'), copyIndex(variables('secondStartIndex')))]",
+                    "adminUsername": "[parameters('adminUser')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nodeName'), '-NIC', copyIndex(variables('secondStartIndex'))))]"
+                        }
+                    ]
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "id": "[parameters('OSImage')]"
+                      },
+                    "osDisk":{
+                        "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(variables('secondStartIndex')),9),'-vm0','-vm00'), copyIndex(variables('secondStartIndex'))), '-OsDisk')]",
+                        "osType": "Linux",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "diskSizeGB": "[parameters('nodeDataDiskSize')]",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                          }
+                    },
+                    "copy": [
+                        {
+                            "name": "dataDisks",
+                            "count": "[parameters('nodeDataDiskCount')]",
+                            "input": {
+                                "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(variables('secondStartIndex')),9),'-vm0','-vm00'), copyIndex(variables('secondStartIndex'))), '-DataDisk', copyIndex('dataDisks'))]",
+                                "lun": "[copyIndex('dataDisks')]",
+                                "diskSizeGB": "[parameters('nodeDataDiskSize')]",
+                                "caching": "ReadOnly",
+                                "createOption": "Empty",
+                                "managedDisk": {
+                                    "storageAccountType": "Premium_LRS"
+                                  }
+                            }
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "comments": "# Do configuration for GlusterFS nodes",
+                    "type": "extensions",
+                    "apiVersion": "2017-03-30",
+                    "name": "InstallGlusterFS",
+                    "location": "[resourceGroup().location]",
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "fileUris": "[variables('scripts')]"
+                        },
+                        "protectedSettings": {
+                            "commandToExecute": "[variables('cmdToExecute')]"
+                        }
+                    },
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex'))))]"
+                    ]
+                }
+            ]
+        }
+    ]
+}
