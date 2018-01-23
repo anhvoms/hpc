@@ -112,7 +112,7 @@
         "secondStartIndex": "[add(parameters('nodeStartIndex'), variables('firstRGCount'))]",
         "cmdToExecute": "[concat('./glusterfs_bootstrap.sh ', parameters('nodePrefix'), ' ',  parameters('subnetIpBase'), ' ', parameters('subnetIPOffset'), ' ', parameters('nodeCount'))]",
         "remoteBootstrapLink":"https://raw.githubusercontent.com/Azure/batch-shipyard/master/scripts/setupgluster.sh",
-        "remoteFSLink": "https://raw.githubusercontent.com/Azure/batch-shipyard/master/scripts/shipyard_remotefs_bootstrap.sh",
+        "remoteFSLink": "https://raw.githubusercontent.com/Azure/batch-shipyard/3.0.3/scripts/shipyard_remotefs_bootstrap.sh",
         "scripts": [
             "[variables('remoteFSLink')]",
             "[variables('remoteBootstrapLink')]"
@@ -165,7 +165,8 @@
                             "subnet": "[parameters('subnet')]"
                         }
                     }
-                ]
+                ],
+                "enableAcceleratedNetworking":true
             }
         },
         {
@@ -190,7 +191,8 @@
                             "subnet": "[parameters('subnet')]"
                         }
                     }
-                ]
+                ],
+                "enableAcceleratedNetworking":true
             }
         },
         {
