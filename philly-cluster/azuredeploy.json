@@ -19,18 +19,10 @@
       "type": "string",
       "defaultValue": "Standard_D12",
       "allowedValues": [
-        "Standard_D12",
-        "Standard_D12_v2",
-        "Standard_D13_v2",
-        "Standard_D14_v2",
-        "Standard_D15_v2",
-        "Standard_DS1_v2",
-        "Standard_DS2_v2",
-        "Standard_DS3_v2",
-        "Standard_DS4_v2",
-        "Standard_DS5_v2",
         "Standard_DS11_v2",
         "Standard_DS12_v2",
+        "Standard_F8s",
+        "Standard_F16s",
         "Standard_NC6",
         "Standard_NC12",
         "Standard_NC24",
@@ -57,12 +49,7 @@
       "type": "string",
       "defaultValue": "Standard_NC24rs_v2",
       "allowedValues": [
-        "Standard_D12",
-        "Standard_D12_v2",
-        "Standard_D13_v2",
-        "Standard_D14_v2",
-        "Standard_D15_v2",
-        "Standard_DS12_v2",
+        "Standard_DS12",
         "Standard_NC6",
         "Standard_NC12",
         "Standard_NC24",
@@ -89,12 +76,8 @@
       "type": "string",
       "defaultValue": "Standard_D12",
       "allowedValues": [
-        "Standard_D12",
-        "Standard_D12_v2",
-        "Standard_D13_v2",
-        "Standard_D14_v2",
-        "Standard_D15_v2",
-        "Standard_DS12_v2",
+        "Standard_F8s",
+        "Standard_F16s",
         "Standard_NC6",
         "Standard_NC12",
         "Standard_NC24",
@@ -199,8 +182,7 @@
       "location": "[resourceGroup().location]",
       "properties": {
         "platformFaultDomainCount": 2,
-        "platformUpdateDomainCount": 5,
-        "managed": "true"
+        "platformUpdateDomainCount": 5
       }
     },
     {
