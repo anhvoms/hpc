@@ -23,7 +23,7 @@ nodecount=$4
 #vnetAddressSpace=${ipbase%?}*.*
 private_ips=()
 # Create static private IPs that follow Azure numbering scheme with specified offset
-for (( i=4; i<$((nodecount+offset)); i++ )); do
+for (( i=0; i<$((nodecount+offset)); i++ )); do
     private_ips+=($ipbase.$i)
 done
 
