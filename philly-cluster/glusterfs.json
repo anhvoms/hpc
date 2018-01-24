@@ -243,7 +243,7 @@
                             "name": "dataDisks",
                             "count": "[parameters('nodeDataDiskCount')]",
                             "input": {
-                                "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex'))), '-DataDisk', copyIndex('dataDisks'))]",
+                                "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex'))), '-disk', copyIndex('dataDisks'))]",
                                 "lun": "[copyIndex('dataDisks')]",
                                 "diskSizeGB": "[parameters('nodeDataDiskSize')]",
                                 "caching": "ReadOnly",
@@ -331,7 +331,7 @@
                             "name": "dataDisks",
                             "count": "[parameters('nodeDataDiskCount')]",
                             "input": {
-                                "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(variables('secondStartIndex')),9),'-vm0','-vm00'), copyIndex(variables('secondStartIndex'))), '-DataDisk', copyIndex('dataDisks'))]",
+                                "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(variables('secondStartIndex')),9),'-vm0','-vm00'), copyIndex(variables('secondStartIndex'))), '-disk', copyIndex('dataDisks'))]",
                                 "lun": "[copyIndex('dataDisks')]",
                                 "diskSizeGB": "[parameters('nodeDataDiskSize')]",
                                 "caching": "ReadOnly",
