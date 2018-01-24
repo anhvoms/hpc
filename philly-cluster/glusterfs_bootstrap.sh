@@ -23,7 +23,7 @@ nodecount=$4
 #vnetAddressSpace=${ipbase%?}*.*
 private_ips=()
 # Create static private IPs that follow Azure numbering scheme with specified offset
-for (( i=0; i<$((nodecount+offset)); i++ )); do
+for (( i=$offset; i<$((nodecount+offset)); i++ )); do
     private_ips+=($ipbase.$i)
 done
 
@@ -50,8 +50,8 @@ fileSystemOption='-f ext4'
 peerIPsOption='-i '$(IFS=, ; echo "${private_ips[*]}")
 mountpointOption='-m /data'
 tuneTcpOption='-n'
-#serverOption='gv0,replica 3,tcp,performance.cache-size:1GB,auth.allow:'$vnetAddressSpace # -o server options
-serverOption='gv0,replica 3,tcp'# -o server options
+#serverOption='gv0,replica 3,tcp,performance.cache-size:1GB,auth.allow:'$vnetAddressSpace
+serverOption='gv0,replica 3,tcp'
 premiumOption='-p'
 raidLevelOption='-r 0'
 serverTypeOption='-s glusterfs'
