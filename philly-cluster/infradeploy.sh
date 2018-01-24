@@ -163,13 +163,6 @@ function fixHostsFile()
         ((++i))
     done
 
-    i=0
-    while [ $i -lt $WORKER_COUNT ]
-    do
-        nextip=$((i + WORKER_IP_START))
-        echo $WORKER_IP_BASE$nextip $WORKER_BASE_NAME$i >> /etc/hosts
-        ((++i))
-    done
     echo "Finished setting up hosts file"
 }
 
@@ -244,7 +237,8 @@ function generateMachinesYml()
     while [ $i -lt $WORKER_COUNT ]
     do
         nextip=$((i + WORKER_IP_START))
-        echo "    $WORKER_BASE_NAME$i:"
+        j=$(seq -f "%04g" $i $i)
+        echo "    $WORKER_BASE_NAME$j:"
         echo "      sku: $WORKERNODE_SKU"
         echo "      rack: rack1"
         echo "      rackLocation: 1"
@@ -483,7 +477,8 @@ function startHadoopServices()
         done
     fi
 
-    if [ "$NAME" == "$WORKER_BASE_NAME$masterIndex" ] ; then
+    m=$(seq -f "%04g" $masterIndex $masterIndex)
+    if [ "$NAME" == "$WORKER_BASE_NAME$m" ] ; then
         #
         # workers are part of hadoop data node set, first worker should create the hdfs directory that is needed
         # for alertserver
@@ -543,9 +538,10 @@ function startOtherServices()
         while [ $i -lt $WORKER_COUNT ]
         do
             nextip=$((i + INFRA_IP_START))
-            etcdctl mkdir stateMachine/$WORKER_BASE_NAME$i
-            etcdctl mk stateMachine/$WORKER_BASE_NAME$i/currentState UP
-            etcdctl mk stateMachine/$WORKER_BASE_NAME$i/goalState UP
+            j=$(seq -f "%04g" $i $i)
+            etcdctl mkdir stateMachine/$WORKER_BASE_NAME$j
+            etcdctl mk stateMachine/$WORKER_BASE_NAME$j/currentState UP
+            etcdctl mk stateMachine/$WORKER_BASE_NAME$j/goalState UP
 
             etcdctl mkdir resources/gpu/$WORKER_IP_BASE$nextip
             etcdctl mkdir resources/port/$WORKER_IP_BASE$nextip

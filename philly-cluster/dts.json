@@ -47,13 +47,6 @@
                 "description": "Specify the number of worker nodes."
             }
         },
-        "workerStartIndex": {
-            "type": "int",
-            "defaultValue": 50,
-            "metadata": {
-                "description": "Specify the starting index for this set of workers."
-            }
-        },
         "OSImage": {
             "type": "string",
             "defaultValue": "provide_your_image_id_string",
@@ -85,8 +78,6 @@
         "lbPoolID": "[concat(variables('lbID'),'/backendAddressPools/BackendPool1')]",
         "lbProbeID": "[concat(variables('lbID'),'/probes/tcpProbe')]",
         "workerVMName": "pdts",
-        "armApiVersion": "2016-09-01",
-        "computeApiVersion": "2016-04-30-preview",
         "avSetName": "avSet",
         "nicName": "nic",
         "base": "10.0.2.",
@@ -107,11 +98,11 @@
         {
             "type": "Microsoft.Compute/availabilitySets",
             "name": "[variables('avSetName')]",
-            "apiVersion": "[variables('computeApiVersion')]",
+            "apiVersion": "2017-03-30",
             "location": "[resourceGroup().location]",
             "properties": {
-                "platformFaultDomainCount": "3",
-                "platformUpdateDomainCount": "5",
+                "platformFaultDomainCount": 2,
+                "platformUpdateDomainCount": 5,
                 "managed": "true"
             }
         },
@@ -149,7 +140,7 @@
                             "backendAddressPool": {
                                 "id": "[variables('lbPoolID')]"
                             },
-                            "protocol": "tcp",
+                            "protocol": "Tcp",
                             "frontendPort": 80,
                             "backendPort": 80,
                             "enableFloatingIP": false,
@@ -164,7 +155,7 @@
                     {
                         "name": "tcpProbe",
                         "properties": {
-                            "protocol": "tcp",
+                            "protocol": "Tcp",
                             "port": 80,
                             "intervalInSeconds": 5,
                             "numberOfProbes": 2
@@ -176,7 +167,7 @@
         {
             "type": "Microsoft.Network/networkSecurityGroups",
             "name": "nsg",
-            "apiVersion": "[variables('armApiVersion')]",
+            "apiVersion": "2017-06-01",
             "location": "[resourceGroup().location]",
             "properties": {
                 "securityRules": [
@@ -198,7 +189,7 @@
             "dependsOn": []
         },
         {
-            "apiVersion": "[variables('armApiVersion')]",
+            "apiVersion": "2017-06-01",
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[concat(variables('nicName'), 'dts', copyindex())]",
             "dependsOn": [
@@ -233,7 +224,7 @@
             }
         },
         {
-            "apiVersion": "[variables('computeApiVersion')]",
+            "apiVersion": "2017-03-30",
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[concat(variables('workerVMName'), copyindex())]",
             "location": "[resourceGroup().location]",
@@ -288,7 +279,7 @@
             }
         },
         {
-            "apiVersion": "[variables('computeApiVersion')]",
+            "apiVersion": "2017-03-30",
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "name": "[concat(variables('workerVMName'), copyindex(), '/Installation')]",
             "location": "[resourceGroup().location]",
@@ -300,9 +291,10 @@
                 "count": "[variables('firstCount')]"
             },
             "properties": {
-                "publisher": "Microsoft.OSTCExtensions",
-                "type": "CustomScriptForLinux",
-                "typeHandlerVersion": "1.3",
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
                 "settings": {
                     "fileUris": [
                         "[concat(variables('templateBaseUrl'), 'dtsdeploy.sh')]"

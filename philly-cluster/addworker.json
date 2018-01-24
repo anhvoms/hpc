@@ -85,9 +85,6 @@
   },
   "variables": {
     "workerVMName": "pworker",
-    "armApiVersion": "2015-06-15",
-    "computeApiVersion": "2016-04-30-preview",
-    "avSetName": "avSet",
     "nicName": "nic",
     "offset":5,
     "base":"10.0.",
@@ -104,9 +101,9 @@
   },
   "resources": [
     {
-      "apiVersion": "[variables('armApiVersion')]",
+      "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('nicName'), 'worker', copyindex(parameters('workerStartIndex')))]",
+      "name": "[concat(variables('nicName'), 'worker', if(less(copyindex(parameters('workerStartIndex')),10),'000',if(less(copyindex(parameters('workerStartIndex')),100),'00','0')), copyindex(parameters('workerStartIndex')))]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "workerNicCopy1",
@@ -128,12 +125,12 @@
       }
     },
     {
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('workerVMName'), copyindex(parameters('workerStartIndex')))]",
+      "name": "[concat(variables('workerVMName'), if(less(copyindex(parameters('workerStartIndex')),10),'000',if(less(copyindex(parameters('workerStartIndex')),100),'00','0')), copyindex(parameters('workerStartIndex')))]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', copyindex(parameters('workerStartIndex')))]"
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', if(less(copyindex(parameters('workerStartIndex')),10),'000',if(less(copyindex(parameters('workerStartIndex')),100),'00','0')), copyindex(parameters('workerStartIndex')))]"
       ],
       "copy": {
         "name": "workerVMCopy1",
@@ -147,7 +144,7 @@
           "vmSize": "[parameters('workerNodeSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('workerVMName'), copyindex(parameters('workerStartIndex')))]",
+          "computername": "[concat(variables('workerVMName'), if(less(copyindex(parameters('workerStartIndex')),10),'000',if(less(copyindex(parameters('workerStartIndex')),100),'00','0')), copyindex(parameters('workerStartIndex')))]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         },
@@ -176,28 +173,29 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', copyindex(parameters('workerStartIndex'))))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', if(less(copyindex(parameters('workerStartIndex')),10),'000',if(less(copyindex(parameters('workerStartIndex')),100),'00','0')), copyindex(parameters('workerStartIndex'))))]"
             }
           ]
         }
       }
     },
     {
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('workerVMName'), copyindex(parameters('workerStartIndex')), '/Installation')]",
+      "name": "[concat(variables('workerVMName'), if(less(copyindex(parameters('workerStartIndex')),10),'000',if(less(copyindex(parameters('workerStartIndex')),100),'00','0')), copyindex(parameters('workerStartIndex')), '/Installation')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), copyindex(parameters('workerStartIndex')))]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), if(less(copyindex(parameters('workerStartIndex')),10),'000',if(less(copyindex(parameters('workerStartIndex')),100),'00','0')), copyindex(parameters('workerStartIndex')))]"
       ],
       "copy": {
         "name": "workerExtCopy1",
         "count": "[variables('firstCount')]"
       },
       "properties": {
-        "publisher": "Microsoft.OSTCExtensions",
-        "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.3",
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'workerdeploy.sh')]"
@@ -207,10 +205,10 @@
       }
     },
     {
-      "apiVersion": "[variables('armApiVersion')]",
+      "apiVersion": "2017-06-01",
       "condition": "[equals(variables('overflow'),1)]",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('nicName'), 'worker', copyindex(variables('secondStartIndex')))]",
+      "name": "[concat(variables('nicName'), 'worker', if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')), copyindex(variables('secondStartIndex')))]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "workerNicCopy2",
@@ -232,13 +230,13 @@
       }
     },
     {
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "condition": "[equals(variables('overflow'),1)]",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('workerVMName'), copyindex(variables('secondStartIndex')))]",
+      "name": "[concat(variables('workerVMName'), if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')), copyindex(variables('secondStartIndex')))]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', copyindex(variables('secondStartIndex')))]"
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')), copyindex(variables('secondStartIndex')))]"
       ],
       "copy": {
         "name": "workerVMCopy2",
@@ -252,7 +250,7 @@
           "vmSize": "[parameters('workerNodeSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('workerVMName'), copyindex(variables('secondStartIndex')))]",
+          "computername": "[concat(variables('workerVMName'), if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')), copyindex(variables('secondStartIndex')))]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         },
@@ -281,29 +279,30 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', copyindex(variables('secondStartIndex'))))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')), copyindex(variables('secondStartIndex'))))]"
             }
           ]
         }
       }
     },
     {
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "condition": "[equals(variables('overflow'),1)]",      
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('workerVMName'), copyindex(variables('secondStartIndex')), '/Installation')]",
+      "name": "[concat(variables('workerVMName'), if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')),copyindex(variables('secondStartIndex')), '/Installation')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), copyindex(variables('secondStartIndex')))]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')), copyindex(variables('secondStartIndex')))]"
       ],
       "copy": {
         "name": "workerExtCopy2",
         "count": "[variables('secondCount')]"
       },
       "properties": {
-        "publisher": "Microsoft.OSTCExtensions",
-        "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.3",
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'workerdeploy.sh')]"

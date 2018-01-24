@@ -121,5 +121,6 @@ function enableRDMA()
 
 initialSetup
 applyCloudConfig
+sleep 20
 updateStateMachineStatus
 enableRDMA

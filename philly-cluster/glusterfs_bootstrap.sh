@@ -13,16 +13,16 @@ if [ $# -lt 4 ]; then
 fi
 
 # Import common functions
-log "Starting installation and configuration on $HOSTNAME"
+echo "Starting installation and configuration on $HOSTNAME"
 
-log "- Starting GlusterFS node configuration"
+echo "- Starting GlusterFS node configuration"
 hostprefix=$1
 ipbase=$2
 offset=$3
 nodecount=$4
 #vnetAddressSpace=${ipbase%?}*.*
 private_ips=()
-# Create static private IPs that follow Azure numbering scheme: start offset at 4
+# Create static private IPs that follow Azure numbering scheme with specified offset
 for (( i=4; i<$((nodecount+offset)); i++ )); do
     private_ips+=($ipbase.$i)
 done
@@ -57,22 +57,14 @@ raidLevelOption='-r 0'
 serverTypeOption='-s glusterfs'
 mountOption='-t noatime,nodiratime'
 
-log "Creating UFW app profile for GlusterFS to unblock GlusterFS networking"
-cat > /etc/ufw/applications.d/ufw-glusterfs << EOF
-[GlusterFS]
-title=GlusterFS
-description=GlusterFS is an open source, distributed file system capable of scaling to several petabytes
-ports=111,2049,24007:24011,38465:38469,49152:49215/tcp|111/udp
-EOF
-log "Executing shipyard_remotefs_bootstrap.sh -c $sambaOption $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o $serverOption $premiumOption $raidLevelOption $serverTypeOption $mountOption"
+echo "Executing shipyard_remotefs_bootstrap.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o $serverOption $premiumOption $raidLevelOption $serverTypeOption $mountOption"
 ./shipyard_remotefs_bootstrap.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o "$serverOption" $premiumOption $raidLevelOption $serverTypeOption $mountOption
 exitCode=$?
-
 
 if [ $exitCode -ne 0 ]; then
     log "##ERROR failed to run shipyard_remotefs_bootstrap.sh with exit code: $exitCode"
     exit $exitCode
 fi
 
-log "Completed the installation and configuration on $HOSTNAME"
+echo "Completed the installation and configuration on $(hostname)"
 exit 0

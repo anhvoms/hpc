@@ -154,8 +154,6 @@
     "infraVMName": "pinfra",
     "workerVMName": "pworker",
     "auxVMName": "paux",
-    "armApiVersion": "2015-06-15",
-    "computeApiVersion": "2016-04-30-preview",
     "avSetName": "avSet",
     "nicName": "nic",
     "networkSettings": {
@@ -184,8 +182,11 @@
         "lbIP": "10.0.0.4"
       }
     },
-    "loadBalancerName":"masterlb",
-    "lbID": "[resourceId('Microsoft.Network/loadBalancers',variables('loadBalancerName'))]",
+    "externalLBIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses','publicIPExternalLB')]",
+    "internalLBName":"internalLoadBalancer",
+    "internalLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('internalLBName'))]",
+    "externalLBName":"externalLoadBalander",
+    "externalLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('externalLBName'))]",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('networkSettings').virtualNetworkName)]",
     "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.dse.name)]",
     "templateBaseUrl": "https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/"
@@ -194,18 +195,112 @@
     {
       "type": "Microsoft.Compute/availabilitySets",
       "name": "[variables('avSetName')]",
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "location": "[resourceGroup().location]",
       "properties": {
-        "platformFaultDomainCount": "3",
-        "platformUpdateDomainCount": "5",
+        "platformFaultDomainCount": 2,
+        "platformUpdateDomainCount": 5,
         "managed": "true"
       }
     },
     {
-      "apiVersion": "2015-05-01-preview",
+      "apiVersion": "2017-06-01",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "publicIPExternalLB",
+      "location": "[resourceGroup().location]",
+      "properties": {
+          "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+      }
+    },
+    {
+      "apiVersion": "2017-10-01",
       "type": "Microsoft.Network/loadBalancers",
-      "name": "[variables('loadBalancerName')]",
+      "name": "[variables('externalLBName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
+        "[variables('externalLBIPAddressID')]"
+      ],
+      "properties": {
+        "frontendIPConfigurations": [
+            {
+                "name": "LoadBalancerFrontEnd",
+                "properties": {
+                    "publicIPAddress": {
+                        "id": "[variables('externalLBIPAddressID')]"
+                    }
+                }
+            }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "BackendPool1"
+          }
+        ],
+        "loadBalancingRules": [
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/BackendPool1')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/httpprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 80,
+              "backendPort": 80,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "httplbrule"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/BackendPool1')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/etcd4001probe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 4001,
+              "backendPort": 4001,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "etcd4001"
+          }
+        ],
+        "probes": [
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 80,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "httpprobe"
+          },
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 4001,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "etcd4001probe"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2017-10-01",
+      "type": "Microsoft.Network/loadBalancers",
+      "name": "[variables('internalLBName')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]"
@@ -232,13 +327,13 @@
           {
             "properties": {
               "frontendIPConfiguration": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
               },
               "backendAddressPool": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/BackendPool1')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/backendAddressPools/BackendPool1')]"
               },
               "probe": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/httpprobe')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/probes/httpprobe')]"
               },
               "protocol": "Tcp",
               "frontendPort": 80,
@@ -250,13 +345,13 @@
           {
             "properties": {
               "frontendIPConfiguration": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
               },
               "backendAddressPool": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/BackendPool1')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/backendAddressPools/BackendPool1')]"
               },
               "probe": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/etcd4001probe')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/probes/etcd4001probe')]"
               },
               "protocol": "Tcp",
               "frontendPort": 4001,
@@ -268,13 +363,13 @@
           {
             "properties": {
               "frontendIPConfiguration": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
               },
               "backendAddressPool": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/BackendPool1')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/backendAddressPools/BackendPool1')]"
               },
               "probe": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/dns53probe')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/probes/dns53probe')]"
               },
               "protocol": "Tcp",
               "frontendPort": 53,
@@ -286,13 +381,13 @@
           {
             "properties": {
               "frontendIPConfiguration": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
               },
               "backendAddressPool": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/BackendPool1')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/backendAddressPools/BackendPool1')]"
               },
               "probe": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/dns53probe')]"
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/probes/dns53probe')]"
               },
               "protocol": "Udp",
               "frontendPort": 53,
@@ -334,7 +429,7 @@
       }
     },
     {
-      "apiVersion": "[variables('armApiVersion')]",
+      "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/virtualNetworks",
       "name": "[variables('networkSettings').virtualNetworkName]",
       "location": "[resourceGroup().location]",
@@ -356,7 +451,7 @@
     },
     {
       "type": "Microsoft.Network/publicIPAddresses",
-      "apiVersion": "[variables('armApiVersion')]",
+      "apiVersion": "2017-06-01",
       "name": "[concat(variables('publicIPAddressName'), copyindex())]",
       "location": "[resourceGroup().location]",
       "copy": {
@@ -370,7 +465,7 @@
     {
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "nsg",
-      "apiVersion": "[variables('armApiVersion')]",
+      "apiVersion": "2017-06-01",
       "location": "[resourceGroup().location]",
       "properties": {
         "securityRules": [
@@ -392,14 +487,15 @@
       "dependsOn": []
     },
     {
-      "apiVersion": "[variables('armApiVersion')]",
+      "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat(variables('nicName'),'infra', copyindex())]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'),copyindex())]",
         "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('internalLBName'))]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('externalLBName'))]",
         "Microsoft.Network/networkSecurityGroups/nsg"
       ],
       "copy": {
@@ -421,7 +517,10 @@
               },
               "loadBalancerBackendAddressPools": [
                 {
-                  "id": "[concat(variables('lbID'), '/backendAddressPools/BackendPool1')]"
+                  "id": "[concat(variables('internalLBID'), '/backendAddressPools/BackendPool1')]"
+                },
+                {
+                  "id": "[concat(variables('externalLBID'), '/backendAddressPools/BackendPool1')]"
                 }
               ]
             }
@@ -429,11 +528,12 @@
         ],
         "networkSecurityGroup": {
           "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg')]"
-        }
+        },
+        "enableAcceleratedNetworking":true
       }
     },
     {
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[concat(variables('infraVMName'), copyindex())]",
       "location": "[resourceGroup().location]",
@@ -489,7 +589,7 @@
       }
     },
     {
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(variables('infraVMName'), copyindex(), '/Installation')]",
       "location": "[resourceGroup().location]",
@@ -501,9 +601,10 @@
         "count": "[parameters('infraNodeCount')]"
       },
       "properties": {
-        "publisher": "Microsoft.OSTCExtensions",
-        "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.3",
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
@@ -513,13 +614,13 @@
       }
     },
     {
-      "apiVersion": "[variables('armApiVersion')]",
+      "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('nicName'), 'worker', copyindex())]",
+      "name": "[concat(variables('nicName'), 'worker', if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex())]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]"
+        "[concat('Microsoft.Network/loadBalancers/', variables('internalLBName'))]"
       ],
       "copy": {
         "name": "workerNetworkCopy",
@@ -541,12 +642,12 @@
       }
     },
     {
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('workerVMName'), copyindex())]",
+      "name": "[concat(variables('workerVMName'), if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex())]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', copyindex())]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex())]",
         "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
       ],
       "copy": {
@@ -561,7 +662,7 @@
           "vmSize": "[parameters('workerNodeSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('workerVMName'), copyindex())]",
+          "computername": "[concat(variables('workerVMName'), if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex())]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         },
@@ -590,29 +691,30 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', copyindex()))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex()))]"
             }
           ]
         }
       }
     },
     {
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('workerVMName'), copyindex(), '/Installation')]",
+      "name": "[concat(variables('workerVMName'), if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex(), '/Installation')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "auxExtCopy",
-        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), copyindex())]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex())]"
       ],
       "copy": {
         "name": "workerExtCopy",
         "count": "[parameters('workerNodeCount')]"
       },
       "properties": {
-        "publisher": "Microsoft.OSTCExtensions",
-        "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.3",
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
@@ -622,13 +724,13 @@
       }
     },
     {
-      "apiVersion": "[variables('armApiVersion')]",
+      "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat(variables('nicName'), 'aux', copyindex())]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]"
+        "[concat('Microsoft.Network/loadBalancers/', variables('internalLBName'))]"
       ],
       "copy": {
         "name": "auxNetworkCopy",
@@ -646,11 +748,12 @@
               }
             }
           }
-        ]
+        ],
+        "enableAcceleratedNetworking":true
       }
     },
     {
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[concat(variables('auxVMName'), copyindex())]",
       "location": "[resourceGroup().location]",
@@ -706,7 +809,7 @@
       }
     },
     {
-      "apiVersion": "[variables('computeApiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(variables('auxVMName'), copyindex(), '/Installation')]",
       "location": "[resourceGroup().location]",
@@ -719,9 +822,10 @@
         "count": "[parameters('auxNodeCount')]"
       },
       "properties": {
-        "publisher": "Microsoft.OSTCExtensions",
-        "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.3",
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"

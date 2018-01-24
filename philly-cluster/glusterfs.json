@@ -149,7 +149,7 @@
             "comments": "# Create Network Interfaces for GlusterFS cluster nodes",
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2017-06-01",
-            "name": "[concat(variables('nodeName'), '-NIC', copyIndex(parameters('nodeStartIndex')))]",
+            "name": "[concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-nic0','-nic00'), copyIndex(parameters('nodeStartIndex')))]",
             "location": "[resourceGroup().location]",
             "copy": {
                 "name": "VmNicCopyLoop",
@@ -175,7 +175,7 @@
             "resourceGroup":"[parameters('secondResourceGroup')]",
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2017-06-01",
-            "name": "[concat(variables('nodeName'), '-NIC', copyIndex(variables('secondStartIndex')))]",
+            "name": "[concat(variables('nodeName'), if(greater(copyIndex(variables('secondStartIndex')),9),'-nic0','-nic00'), copyIndex(variables('secondStartIndex')))]",
             "location": "[resourceGroup().location]",
             "copy": {
                 "name": "VmNicCopyLoop",
@@ -199,7 +199,7 @@
             "comments": "# Create GlusterFS cluster nodes",
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2017-03-30",
-            "name": "[concat(variables('nodeName'), '-vm', copyIndex(parameters('nodeStartIndex')))]",
+            "name": "[concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex')))]",
             "location": "[resourceGroup().location]",
             "copy": {
                 "name": "VmCopyLoop",
@@ -207,7 +207,7 @@
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet'))]",
-                "[concat('Microsoft.Network/networkInterfaces/', variables('nodeName'), '-NIC', copyIndex(parameters('nodeStartIndex')))]"
+                "[concat('Microsoft.Network/networkInterfaces/', variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-nic0','-nic00'), copyIndex(parameters('nodeStartIndex')))]"
             ],
             "properties": {
                 "availabilitySet": { "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet'))]" },
@@ -220,7 +220,7 @@
                 "networkProfile": {
                     "networkInterfaces": [
                         {
-                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nodeName'), '-NIC', copyIndex(parameters('nodeStartIndex'))))]"
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-nic0','-nic00'), copyIndex(parameters('nodeStartIndex'))))]"
                         }
                     ]
                 },
@@ -229,7 +229,7 @@
                         "id": "[parameters('OSImage')]"
                       },
                     "osDisk":{
-                        "name": "[concat(concat(variables('nodeName'), '-vm', copyIndex(parameters('nodeStartIndex'))), '-OsDisk')]",
+                        "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex'))), '-OsDisk')]",
                         "osType": "Linux",
                         "createOption": "FromImage",
                         "caching": "ReadWrite",
@@ -243,7 +243,7 @@
                             "name": "dataDisks",
                             "count": "[parameters('nodeDataDiskCount')]",
                             "input": {
-                                "name": "[concat(concat(variables('nodeName'), '-vm', copyIndex(parameters('nodeStartIndex'))), '-DataDisk', copyIndex('dataDisks'))]",
+                                "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex'))), '-DataDisk', copyIndex('dataDisks'))]",
                                 "lun": "[copyIndex('dataDisks')]",
                                 "diskSizeGB": "[parameters('nodeDataDiskSize')]",
                                 "caching": "ReadOnly",
@@ -276,7 +276,7 @@
                         }
                     },
                     "dependsOn": [
-                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('nodeName'), '-vm', copyIndex(parameters('nodeStartIndex'))))]"
+                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex'))))]"
                     ]
                 }
             ]
@@ -287,7 +287,7 @@
             "resourceGroup":"[parameters('secondResourceGroup')]",
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2017-03-30",
-            "name": "[concat(variables('nodeName'), '-vm', copyIndex(variables('secondStartIndex')))]",
+            "name": "[concat(variables('nodeName'), if(greater(copyIndex(variables('secondstartIndex')),9),'-vm0','-vm00'), copyIndex(variables('secondStartIndex')))]",
             "location": "[resourceGroup().location]",
             "copy": {
                 "name": "VmCopyLoop",
@@ -295,7 +295,7 @@
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet'))]",
-                "[concat('Microsoft.Network/networkInterfaces/', variables('nodeName'), '-NIC', copyIndex(variables('secondStartIndex')))]"
+                "[concat('Microsoft.Network/networkInterfaces/', variables('nodeName'), if(greater(copyIndex(variables('secondstartIndex')),9),'-nic0','-nic00'), copyIndex(variables('secondStartIndex')))]"
             ],
             "properties": {
                 "availabilitySet": { "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet'))]" },
@@ -308,7 +308,7 @@
                 "networkProfile": {
                     "networkInterfaces": [
                         {
-                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nodeName'), '-NIC', copyIndex(variables('secondStartIndex'))))]"
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nodeName'), if(greater(copyIndex(variables('secondstartIndex')),9),'-nic0','-nic00'), copyIndex(variables('secondStartIndex'))))]"
                         }
                     ]
                 },
@@ -364,7 +364,7 @@
                         }
                     },
                     "dependsOn": [
-                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex'))))]"
+                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('nodeName'), if(greater(copyIndex(variables('secondStartIndex')),9),'-vm0','-vm00'), copyIndex(variables('secondStartIndex'))))]"
                     ]
                 }
             ]
