@@ -90,7 +90,7 @@
         },
         "secondResourceGroup": {
             "type": "string",
-            "defaultValue": "GlusterFSOverflow",
+            "defaultValue": "OverflowResourceGroup",
             "metadata": {
                 "description": "Provide overflow RG in case number of disks exceeded 800."
             }
@@ -101,6 +101,13 @@
             "metadata": {
                 "description": "Threshold over which to spill into second resource group."
             }
+        },
+        "secondCount":{
+            "type": "int",
+            "defaultValue": 0,
+            "metadata": {
+                "description": "This is reserved for internal template use. Leave this at 0."
+            }
         }
     },
     "variables": {
@@ -110,7 +117,7 @@
         "needSecondRG": "[if(greater(variables('totalDisks'),parameters('maxDisksPerRG')),1,0)]",
         "firstRGCount": "[if(equals(variables('needSecondRG'),1), div(parameters('nodeCount'),2),parameters('nodeCount'))]",
         "secondRGCount": "[if(equals(variables('needSecondRG'),0),1,sub(parameters('nodeCount'), variables('firstRGCount')))]",
-        "cmdToExecute": "[concat('./glusterfs_bootstrap.sh ', parameters('nodePrefix'), ' ',  parameters('subnetIpBase'), ' ', parameters('subnetIPOffset'), ' ', parameters('nodeCount'))]",
+        "cmdToExecute": "[concat('./glusterfs_bootstrap.sh ', parameters('nodePrefix'), ' ',  parameters('subnetIpBase'), ' ', parameters('subnetIPOffset'), ' ', add(parameters('nodeCount'),parameters('secondCount')))]",
         "remoteBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/glusterfs_bootstrap.sh",
         "remoteFSLink": "https://raw.githubusercontent.com/Azure/batch-shipyard/3.0.3/scripts/shipyard_remotefs_bootstrap.sh",
         "scripts": [
@@ -269,7 +276,8 @@
                     "nodeDataDiskCount":{"value": "[parameters('nodeDataDiskCount')]"},
                     "nodeDataDiskSize":{"value": "[parameters('nodeDataDiskSize')]"},
                     "secondResourceGroup":{"value": "none"},
-                    "maxDisksPerRG":{"value": "[parameters('maxDisksPerRG')]"}
+                    "maxDisksPerRG":{"value": "[parameters('maxDisksPerRG')]"},
+                    "secondCount":{"value": "[variables('firstRGCount')]"}
                 }
             }
         }
