@@ -132,7 +132,7 @@
             "apiVersion": "2016-04-30-preview",
             "name": "[variables('availabilitySet')]",
             "location": "[resourceGroup().location]",
-                "sku": { "name": "Aligned" },
+            "sku": { "name": "Aligned" },
             "properties": {
                 "platformFaultDomainCount": 2,
                 "platformUpdateDomainCount": 8
