@@ -51,6 +51,7 @@ Add dts nodes
 5. Click Purchase.
 
 Add gluster nodes
+
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhvoms%2Fhpc%2Fmaster%2Fphilly-cluster%2Fglusterfs.json" target="_blank">
    <img alt="Deploy to Azure" src="http://azuredeploy.net/deploybutton.png"/>
 </a>
