@@ -65,7 +65,7 @@ echo "Executing shipyard_remotefs_bootstrap.sh $hostPrefixOption $fileSystemOpti
 exitCode=$?
 
 if [ $exitCode -ne 0 ]; then
-    log "##ERROR failed to run shipyard_remotefs_bootstrap.sh with exit code: $exitCode"
+    echo "##ERROR failed to run shipyard_remotefs_bootstrap.sh with exit code: $exitCode"
     exit $exitCode
 fi
 
