@@ -56,6 +56,13 @@
                 "description": "The number of nodes provisioned within the cluster"
             }
         },
+        "nodeStartIndex": {
+            "type": "int",
+            "defaultValue": 0,
+            "metadata": {
+                "description": "The index of first node - usually 0"
+            }
+        },
         "nodeVmSize": {"type": "string",
             "defaultValue": "Standard_F16s",
             "allowedValues": [
@@ -128,7 +135,7 @@
             "comments": "# Create Network Interfaces for GlusterFS cluster nodes",
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2017-06-01",
-            "name": "[concat(variables('nodeName'), if(greater(copyIndex(),9),'-nic0','-nic00'), copyIndex())]",
+            "name": "[concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-nic0','-nic00'), copyIndex(parameters('nodeStartIndex')))]",
             "location": "[resourceGroup().location]",
             "copy": {
                 "name": "VmNicCopyLoop",
@@ -140,7 +147,7 @@
                         "name": "ipconfig",
                         "properties": {
                             "privateIPAllocationMethod": "Static",
-                            "privateIPAddress": "[concat(parameters('subnetIpBase'), '.', copyIndex(parameters('subnetIPOffset')))]",
+                            "privateIPAddress": "[concat(parameters('subnetIpBase'), '.', copyIndex(add(parameters('nodeStartIndex'),parameters('subnetIPOffset'))))]",
                             "subnet": {
                                 "id": "[parameters('subnet')]"
                             }
@@ -154,7 +161,7 @@
             "comments": "# Create GlusterFS cluster nodes",
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2017-03-30",
-            "name": "[concat(variables('nodeName'), if(greater(copyIndex(),9),'-vm0','-vm00'), copyIndex())]",
+            "name": "[concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex')))]",
             "location": "[resourceGroup().location]",
             "copy": {
                 "name": "VmCopyLoop",
@@ -162,20 +169,20 @@
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet'))]",
-                "[concat('Microsoft.Network/networkInterfaces/', variables('nodeName'), if(greater(copyIndex(),9),'-nic0','-nic00'), copyIndex())]"
+                "[concat('Microsoft.Network/networkInterfaces/', variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-nic0','-nic00'), copyIndex(parameters('nodeStartIndex')))]"
             ],
             "properties": {
                 "availabilitySet": { "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet'))]" },
                 "hardwareProfile": { "vmSize": "[parameters('nodeVmSize')]" },
                 "osProfile": {
-                    "computerName": "[concat(variables('nodeName'), if(greater(copyIndex(),9),'-vm0','-vm00'), copyIndex())]",
+                    "computerName": "[concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex')))]",
                     "adminUsername": "[parameters('adminUser')]",
                     "adminPassword": "[parameters('adminPassword')]"
                 },
                 "networkProfile": {
                     "networkInterfaces": [
                         {
-                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nodeName'), if(greater(copyIndex(),9),'-nic0','-nic00'), copyIndex()))]"
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-nic0','-nic00'), copyIndex(parameters('nodeStartIndex'))))]"
                         }
                     ]
                 },
@@ -184,7 +191,7 @@
                         "id": "[parameters('OSImage')]"
                       },
                     "osDisk":{
-                        "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(),9),'-vm0','-vm00'), copyIndex()), '-OsDisk')]",
+                        "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex'))), '-OsDisk')]",
                         "osType": "Linux",
                         "createOption": "FromImage",
                         "caching": "ReadWrite",
@@ -198,7 +205,7 @@
                             "name": "dataDisks",
                             "count": "[parameters('nodeDataDiskCount')]",
                             "input": {
-                                "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex('VmCopyLoop'),9),'-vm0','-vm00'), copyIndex('VmCopyLoop')), '-disk', copyIndex('dataDisks'))]",
+                                "name": "[concat(concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex'))), '-disk', copyIndex('dataDisks'))]",
                                 "lun": "[copyIndex('dataDisks')]",
                                 "diskSizeGB": "[parameters('nodeDataDiskSize')]",
                                 "caching": "ReadOnly",
@@ -231,7 +238,7 @@
                         }
                     },
                     "dependsOn": [
-                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('nodeName'), if(greater(copyIndex(),9),'-vm0','-vm00'), copyIndex()))]"
+                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('nodeName'), if(greater(copyIndex(parameters('nodeStartIndex')),9),'-vm0','-vm00'), copyIndex(parameters('nodeStartIndex'))))]"
                     ]
                 }
             ]
@@ -253,10 +260,11 @@
                     "adminPassword":{"value": "[parameters('adminPassword')]"},
                     "subnet":{"value": "[parameters('subnet')]"},
                     "subnetIpBase":{"value": "[parameters('subnetIpBase')]"},
-                    "subnetIpOffset":{"value": "[add(parameters('subnetIpOffset'),variables('firstRGCount'))]"},
+                    "subnetIpOffset":{"value": "[parameters('subnetIpOffset')]"},
                     "OSImage":{"value": "[parameters('OSImage')]"},
                     "nodePrefix":{"value": "[parameters('nodePrefix')]"},
                     "nodeCount":{"value": "[variables('secondRGCount')]"},
+                    "nodeStartIndex":{"value": "[add(parameters('nodeStartIndex'),variables('firstRGCount'))]"},
                     "nodeVmSize":{"value": "[parameters('nodeVmSize')]"},
                     "nodeDataDiskCount":{"value": "[parameters('nodeDataDiskCount')]"},
                     "nodeDataDiskSize":{"value": "[parameters('nodeDataDiskSize')]"},
