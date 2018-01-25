@@ -118,8 +118,8 @@
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[concat(variables('nicName'), '-infra00', copyindex())]",
             "dependsOn": [
-                "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]",
-                "Microsoft.Network/networkSecurityGroups/nsg"
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'),copyindex())]",
+                "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
             ],
             "location": "[resourceGroup().location]",
             "copy": {
