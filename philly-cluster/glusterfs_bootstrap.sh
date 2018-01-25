@@ -15,6 +15,74 @@ fi
 # Import common functions
 echo "Starting installation and configuration on $HOSTNAME"
 
+LOAD_BALANCER_IP=10.0.0.4
+ADMIN_USERNAME=philly
+PHILLY_HOME=/var/lib/philly
+NAME=$(hostname)
+function initialSetup()
+{
+    echo "Initial Setup: get new machine id, copy stored .ssh folder"
+
+    # update machine-id because all VM's start from the same image.
+    # fleet/etcd uses /etc/machine-id to self identify
+    rm /etc/machine-id
+    systemd-machine-id-setup
+
+    # Don't require password for HPC user sudo
+    echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+    # Disable tty requirement for sudo
+    sed -i 's/^Defaults[ ]*requiretty/# Defaults requiretty/g' /etc/sudoers
+    mkdir -p /home/$ADMIN_USERNAME/.ssh
+    mkdir -p ~/.ssh
+    cp $PHILLY_HOME/bootstrap/.ssh/* /home/$ADMIN_USERNAME/.ssh
+    cp $PHILLY_HOME/bootstrap/.ssh/* ~/.ssh
+
+    chmod 700 /home/$ADMIN_USERNAME/.ssh
+    chmod 400 /home/$ADMIN_USERNAME/.ssh/config
+    chmod 640 /home/$ADMIN_USERNAME/.ssh/authorized_keys
+    chmod 400 /home/$ADMIN_USERNAME/.ssh/id_rsa
+    chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh
+
+    usermod -a -G systemd-journal $ADMIN_USERNAME
+    usermod -a -G docker $ADMIN_USERNAME
+    [[ ! -d /var/nfshare ]] && mkdir /var/nfsshare
+    [[ ! -d /var/nfs-mount ]] && mkdir /var/nfs-mount
+    [[ ! -d /var/gfs ]] && mkdir /var/gfs
+
+    [[ ! -f /usr/bin/mount ]] && ln -s /bin/mount /usr/bin/mount
+    [[ ! -f /usr/sbin/sysctl ]] && ln -s /sbin/sysctl /usr/sbin/sysctl
+    [[ ! -f /usr/bin/bash ]] && ln -s /bin/bash /usr/bin/bash
+    [[ ! -f /usr/bin/true ]] && ln -s /bin/true /usr/bin/true
+    [[ ! -f /usr/bin/chmod ]] && ln -s /bin/chmod /usr/bin/chmod
+
+    echo "Initial setup done"
+}
+
+function applyCloudConfig()
+{
+    [[ ! -d /var/lib/coreos-install ]] && mkdir -p /var/lib/coreos-install
+    curl "http://$LOAD_BALANCER_IP/cloud-config/$NAME.yml?reconfigure" -o /var/lib/coreos-install/user_data
+    [[ -f "/var/lib/coreos-install/user_data" ]] && coreos-cloudinit --from-file=/var/lib/coreos-install/user_data
+
+    if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
+        echo "core ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+    fi
+    
+    sed -i "s/exit 0//g" /etc/rc.local
+    {
+        echo "LOAD_BALANCER_IP=$LOAD_BALANCER_IP"
+        echo '[[ ! -f "/var/lib/coreos-install/user_data" ]] &&'
+        echo '    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$(hostname).yml?reconfigure" -o /var/lib/coreos-install/user_data'
+        echo '[[ -f "/var/lib/coreos-install/user_data" ]] &&'
+        echo '    coreos-cloudinit --from-file=/var/lib/coreos-install/user_data'
+    } >> /etc/rc.local
+
+    /etc/init.d/docker restart
+}
+
+initialSetup
+
 echo "- Starting GlusterFS node configuration"
 hostprefix=$1
 ipbase=$2
@@ -69,5 +137,7 @@ if [ $exitCode -ne 0 ]; then
     exit $exitCode
 fi
 
-echo "Completed the installation and configuration on $(hostname)"
+echo "Completed the gluster setup on $(hostname)"
+
+applyCloudConfig
 exit 0
