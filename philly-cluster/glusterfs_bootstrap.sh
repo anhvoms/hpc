@@ -67,8 +67,9 @@ function applyCloudConfig()
 
     if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
         echo "core ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+        usermod -a -G systemd-journal core
     fi
-    
+
     sed -i "s/exit 0//g" /etc/rc.local
     {
         echo "LOAD_BALANCER_IP=$LOAD_BALANCER_IP"

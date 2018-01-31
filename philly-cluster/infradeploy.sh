@@ -360,7 +360,7 @@ function updateResolvConf()
         do
             sleep 5
         done
-    
+
         #Wait for all infrastructure nodes to come up
         #if upinfra is not up webserver will start ok but not answering http request
         i=0
@@ -370,7 +370,7 @@ function updateResolvConf()
             dnsServer=$INFRA_IP_BASE$nextip
             until nslookup upinfra $dnsServer; do sleep 5; done;
         done
-        
+ 
         #Rewrite /etc/resolv.conf after dns is up
         azureInternalDomain=$(grep search /etc/resolv.conf | awk -F' ' '{print $2}')
         cp /var/lib/philly/newresolv.conf /etc/resolv.conf
@@ -398,7 +398,7 @@ function setupSlurm()
 function applyCloudConfig()
 {
     [[ ! -d /var/lib/coreos-install ]] && mkdir -p /var/lib/coreos-install
-    
+
     if [[ $isInfra -eq 1 ]];
     then
         #Backup our /etc/resolv.conf because cloud-config will overwrite it and
@@ -409,6 +409,7 @@ function applyCloudConfig()
     coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
     if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
         echo "core ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+        usermod -a -G systemd-journal core
     fi
 
     if [[ $isInfra -eq 1 ]];
@@ -416,15 +417,15 @@ function applyCloudConfig()
            #Save the newly generated /etc/resolv.conf
            cp /etc/resolv.conf /var/lib/philly/newresolv.conf
            cp /var/lib/philly/resolv.conf /etc/resolv.conf
-    fi   
-    
+    fi
+
     #Wait for fleet to be ready
     while [[ $(fleetctl list-machines | wc -l) -lt $INFRA_COUNT ]]; do sleep 5; done
     cp $PHILLY_HOME/cloud-config.yml /var/lib/coreos-install/user_data
 
     sed -i "s/exit 0//g" /etc/rc.local
     {
-        echo "LOAD_BALANCER_IP=$LOAD_BALANCER_IP"                
+        echo "LOAD_BALANCER_IP=$LOAD_BALANCER_IP"
         echo '[[ ! -f "/var/lib/coreos-install/user_data" ]] &&'
         echo '    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$(hostname).yml?reconfigure" -o /var/lib/coreos-install/user_data'
         echo '[[ -f "/var/lib/coreos-install/user_data" ]] &&'
@@ -453,7 +454,7 @@ function startCoreServices()
         updateResolvConf
 
         startServiceWaitForRunning webserver
-       
+
     else
         updateResolvConf
     fi
@@ -467,7 +468,7 @@ function startHadoopServices()
 {
     if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
 
-        #zookeeper sometimes takes a while to finish leader election      
+        #zookeeper sometimes takes a while to finish leader election
         startServiceWaitForRunning zookeeper
         sleep 120
 
@@ -505,7 +506,7 @@ function startOtherServices()
         etcdctl mkdir viz/requests
         etcdctl mkdir viz/contracts
         etcdctl mkdir jobs/pnrsy
- 
+
         i=0
         while [ $i -lt $INFRA_COUNT ]
         do
@@ -572,7 +573,7 @@ function startNfs()
     # Query etcd to find out if this machine is responsible for nfs server
     # (If etcd is not up we have a bigger problem than starting nfs)
     #
-    if [[ $isInfra -eq 0 ]]; then       
+    if [[ $isInfra -eq 0 ]]; then
         if [[ $(etcdctl --endpoints "http://$LOAD_BALANCER_IP:4001" get /config/machines/$NAME/role) == "nfs" ]];
         then
             systemctl restart nfs-kernel-server
