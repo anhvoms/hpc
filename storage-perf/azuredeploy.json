@@ -22,18 +22,6 @@
         "description": "Size of the VM that runs the test."
       }
     },
-    "dataDiskHostCaching": {
-      "type": "string",
-      "defaultValue": "ReadOnly",
-      "allowedValues": [
-        "",
-        "ReadOnly",
-        "ReadWrite"
-      ],
-      "metadata": {
-        "description": "Data disk caching type for the test disk."
-      }
-    },
     "diskSizeGB": {
       "type": "string",
       "allowedValues": [
@@ -166,69 +154,7 @@
     "storageAccountName": "[concat(uniqueString(resourceGroup().id), 'storage')]",
     "frontEndNSGName": "[concat('webtestnsg-', uniqueString(resourceGroup().id))]",
     "vmName": "testVM",
-    "testScriptFileName": "disktest.sh",
-    "diskArray": [
-      {
-        "diskSizeGB": "[parameters('diskSizeGB')]",
-        "lun": 0,
-        "caching": "[parameters('dataDiskHostCaching')]",
-        "createOption": "Empty"
-      },
-      {
-        "diskSizeGB": "[parameters('diskSizeGB')]",
-        "lun": 1,
-        "caching": "[parameters('dataDiskHostCaching')]",
-        "createOption": "Empty"
-      },
-      {
-        "diskSizeGB": "[parameters('diskSizeGB')]",
-        "lun": 2,
-        "caching": "[parameters('dataDiskHostCaching')]",
-        "createOption": "Empty"
-      },
-      {
-        "diskSizeGB": "[parameters('diskSizeGB')]",
-        "lun": 3,
-        "caching": "[parameters('dataDiskHostCaching')]",
-        "createOption": "Empty"
-      },
-      {
-        "diskSizeGB": "[parameters('diskSizeGB')]",
-        "lun": 4,
-        "caching": "[parameters('dataDiskHostCaching')]",
-        "createOption": "Empty"
-      },
-      {
-        "diskSizeGB": "[parameters('diskSizeGB')]",
-        "lun": 5,
-        "caching": "[parameters('dataDiskHostCaching')]",
-        "createOption": "Empty"
-      },
-      {
-        "diskSizeGB": "[parameters('diskSizeGB')]",
-        "lun": 6,
-        "caching": "[parameters('dataDiskHostCaching')]",
-        "createOption": "Empty"
-      },
-      {
-        "diskSizeGB": "[parameters('diskSizeGB')]",
-        "lun": 7,
-        "caching": "[parameters('dataDiskHostCaching')]",
-        "createOption": "Empty"
-      },
-      {
-        "diskSizeGB": "[parameters('diskSizeGB')]",
-        "lun": 8,
-        "caching": "[parameters('dataDiskHostCaching')]",
-        "createOption": "Empty"
-      },
-      {
-        "diskSizeGB": "[parameters('diskSizeGB')]",
-        "lun": 9,
-        "caching": "[parameters('dataDiskHostCaching')]",
-        "createOption": "Empty"
-      }
-    ]
+    "testScriptFileName": "disktest.sh"
   },
   "resources": [
     {
@@ -242,7 +168,7 @@
       "kind": "Storage"
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('publicIPAddressName')]",
       "location": "[resourceGroup().location]",
@@ -251,7 +177,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/virtualNetworks",
       "name": "[variables('virtualNetworkName')]",
       "location": "[resourceGroup().location]",
@@ -272,7 +198,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[variables('nicName')]",
       "location": "[resourceGroup().location]",
@@ -294,11 +220,12 @@
               }
             }
           }
-        ]
+        ],
+        "enableAcceleratedNetworking":true
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('frontEndNSGName')]",
       "location": "[resourceGroup().location]",
@@ -328,7 +255,7 @@
       }
     },
     {
-      "apiVersion": "2016-04-30-preview",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[variables('vmName')]",
       "location": "[resourceGroup().location]",
@@ -356,7 +283,22 @@
             "caching": "ReadWrite",
             "createOption": "FromImage"
           },
-          "dataDisks": "[take(variables('diskArray'),parameters('disksInRAID'))]"
+          "copy": [
+            {
+                "name": "dataDisks",
+                "count": "[parameters('disksInRAID')]",
+                "input": {
+                    "name": "[concat('disk-', copyIndex('dataDisks'))]",
+                    "lun": "[copyIndex('dataDisks')]",
+                    "diskSizeGB": "[parameters('diskSizeGB')]",
+                    "caching": "ReadOnly",
+                    "createOption": "Empty",
+                    "managedDisk": {
+                        "storageAccountType": "Premium_LRS"
+                      }
+                }
+            }
+        ]
         },
         "networkProfile": {
           "networkInterfaces": [
@@ -367,7 +309,7 @@
         },
         "diagnosticsProfile": {
           "bootDiagnostics": {
-            "enabled": "true",
+            "enabled":false,
             "storageUri": "[concat(reference(variables('storageAccountName'), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob)]"
           }
         }
@@ -376,7 +318,7 @@
         {
           "type": "extensions",
           "name": "CustomScriptExtension",
-          "apiVersion": "2015-06-15",
+          "apiVersion": "2017-03-30",
           "dependsOn": [
             "[variables('vmName')]"
           ],
