@@ -1,12 +1,9 @@
 # Azure managed disk RAID performance meter
 
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2Fmanaged-disk-raid-performance-meter%2Fazuredeploy.json" target="_blank">
+https://raw.githubusercontent.com/anhvoms/hpc/master/storage-perf/azuredeploy.json
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhvoms%2Fhpc%2Fmaster%2Fmstorage-perf%2Fazuredeploy.json" target="_blank">
     <img src="http://azuredeploy.net/deploybutton.png"/>
 </a>
-<a href="http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2Fmanaged-disk-raid-performance-meter%2Fazuredeploy.json" target="_blank">
-    <img src="http://armviz.io/visualizebutton.png"/>
-</a>
-
 
 This template allows you to run a managed disk RAID performance test using fio utility.
 
