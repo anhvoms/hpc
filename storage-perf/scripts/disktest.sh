@@ -60,7 +60,7 @@ if [ ! -d "/datadisk" ]; then
     done
     set -e
 
-	mdadm --create /dev/md1 --level 0 --raid-devices $numdisks ${raid_array[@]} > /dev/null
+	mdadm --create /dev/md1 --level 0 --chunk 128KB --raid-devices $numdisks ${raid_array[@]} > /dev/null
 	
 	mkfs -t ext4 /dev/md1 > /dev/null 
 	
