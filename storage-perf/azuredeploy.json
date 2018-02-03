@@ -331,10 +331,10 @@
             "settings": {
               "fileUris": [
                 "[concat(parameters('_artifactsLocation'), '/', variables('scriptFolder'), '/', variables('testScriptFileName'), parameters('_artifactsLocationSasToken'))]",
-                "[concat(parametere('_artifactsLocation'), '/fiolargeread.ini')]",
-                "[concat(parametere('_artifactsLocation'), '/fiosmallread.ini')]",
-                "[concat(parametere('_artifactsLocation'), '/fiosmallwrite.ini')]",
-                "[concat(parametere('_artifactsLocation'), '/fiolargewrite.ini')]"
+                "[concat(parameters('_artifactsLocation'), '/fiolargeread.ini')]",
+                "[concat(parameters('_artifactsLocation'), '/fiosmallread.ini')]",
+                "[concat(parameters('_artifactsLocation'), '/fiosmallwrite.ini')]",
+                "[concat(parameters('_artifactsLocation'), '/fiolargewrite.ini')]"
               ],
               "commandToExecute": "[concat('sudo bash ', variables('testScriptFileName'), ' ', parameters('testSize'), ' ', parameters('testType'), ' ', parameters('secondsToRunTest'), ' ', parameters('threadsToRunTest'), ' ', parameters('testBlockSize'), ' ', parameters('disksInRAID'))]"
             }
