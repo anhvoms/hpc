@@ -73,9 +73,9 @@ function applyCloudConfig()
     sed -i "s/exit 0//g" /etc/rc.local
     {
         echo "LOAD_BALANCER_IP=$LOAD_BALANCER_IP"
-        echo '[[ ! -f "/var/lib/coreos-install/user_data" ]] &&'
+        echo '[ ! -f "/var/lib/coreos-install/user_data" ] &&'
         echo '    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$(hostname).yml?reconfigure" -o /var/lib/coreos-install/user_data'
-        echo '[[ -f "/var/lib/coreos-install/user_data" ]] &&'
+        echo '[ -f "/var/lib/coreos-install/user_data" ] &&'
         echo '    coreos-cloudinit --from-file=/var/lib/coreos-install/user_data'
     } >> /etc/rc.local
 
@@ -128,6 +128,7 @@ mountOption='-t noatime,nodiratime'
 
 #Change shipyard script to allow our vm naming pattern
 sed -i 's/vm$i/vm$(seq -f "%03g" $i $i)/g' ./shipyard_remotefs_bootstrap.sh
+sed -i 's/mdadm --create/mdadm --create --chunk 128/g' ./shipyard_remotefs_bootstrap.sh
 
 echo "Executing shipyard_remotefs_bootstrap.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o $serverOption $premiumOption $raidLevelOption $serverTypeOption $mountOption"
 ./shipyard_remotefs_bootstrap.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o "$serverOption" $premiumOption $raidLevelOption $serverTypeOption $mountOption
