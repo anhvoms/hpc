@@ -141,5 +141,5 @@ fi
 
 echo "Completed the gluster setup on $(hostname)"
 
-applyCloudConfig
+#applyCloudConfig
 exit 0
