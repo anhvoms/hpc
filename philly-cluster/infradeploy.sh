@@ -196,7 +196,7 @@ function updateConfigFile()
         sed -i "s/__CLUSTER__/$CLUSTER/g" $PHILLY_HOME/azure.yml
     else
         wget $CLUSTERYML -O $PHILLY_HOME/azure.yml
-        CLUSTER=$(grep -m 1 "id: " gcr.yml | awk -F" " '{print $2}')
+        CLUSTER=$(grep -m 1 "id: " $PHILLY_HOME/azure.yml | awk -F" " '{print $2}')
     fi
 
     cp $PHILLY_HOME/cloud-config.yml $PHILLY_HOME/cloud-config.yml.orig
