@@ -223,7 +223,7 @@
             "vmSize": "[parameters('nodeSize')]"
           },
           "osProfile": {
-            "computername": "[concat(parameters('nodePrefix'), if(less(copyindex(parameters('startIndex')),10),'000',if(less(copyindex(parameters('startIndex')),100),'00','0')), copyindex(parameters('startIndex')))]",
+            "computername": "[concat(parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(variables('secondStartIndex')),10),'00','0'),if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0'))), copyindex(parameters('startIndex')))]",
             "adminUsername": "[parameters('adminUsername')]",
             "adminPassword": "[parameters('adminPassword')]"
           },
@@ -334,7 +334,7 @@
             "vmSize": "[parameters('nodeSize')]"
           },
           "osProfile": {
-            "computername": "[concat(parameters('nodePrefix'), if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')), copyindex(variables('secondStartIndex')))]",
+            "computername": "[concat(parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(variables('secondStartIndex')),10),'00','0'),if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0'))), copyindex(variables('secondStartIndex')))]",
             "adminUsername": "[parameters('adminUsername')]",
             "adminPassword": "[parameters('adminPassword')]"
           },
