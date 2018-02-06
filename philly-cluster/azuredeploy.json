@@ -171,7 +171,7 @@
   "variables": {
     "publicIPAddressType": "Dynamic",
     "publicIPAddressName": "publicips",
-    "infraVMName": "pinfra",
+    "infraVMName": "pinfra00",
     "workerVMName": "pworker",
     "gfsName": "gfs",
     "ftsName": "fts",
@@ -626,7 +626,7 @@
       "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/networkInterfaces",
       "condition":"[greater(parameters('infraNodeCount'),0)]",
-      "name": "[concat(variables('nicName'),'infra', copyindex())]",
+      "name": "[concat(variables('nicName'),'infra00', copyindex())]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'),copyindex())]",
@@ -676,7 +676,7 @@
       "name": "[concat(variables('infraVMName'), copyindex())]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'infra', copyindex())]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'infra00', copyindex())]",
         "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
       ],
       "copy": {
@@ -691,7 +691,7 @@
           "vmSize": "[parameters('infraNodeSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('infraVMName'),copyindex())]",
+          "computername": "[concat(variables('infraVMName'), copyindex())]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         },
@@ -720,7 +720,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'infra', copyindex()))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'infra00', copyindex()))]"
             }
           ]
         }
