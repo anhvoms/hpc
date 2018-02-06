@@ -198,7 +198,8 @@
         "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
-            "[concat(variables('templateBaseUrl'), 'workerdeploy.sh')]"
+            "[concat(variables('templateBaseUrl'), 'workerdeploy.sh')]",
+            "[concat(variables('templateBaseUrl'), 'common.sh')]"
           ],
           "commandToExecute": "[concat('bash workerdeploy.sh', ' ', parameters('loadBalancerIP'), ' ', parameters('adminUserName'), ' ', parameters('workerNodeSize'))]"
         }
