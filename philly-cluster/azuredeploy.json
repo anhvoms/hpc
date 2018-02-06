@@ -118,7 +118,7 @@
     },
     "gfsDataDiskCount": {
       "type": "int",
-      "defaultValue": "25",
+      "defaultValue": 25,
       "metadata": {
           "description": "This number of data disk attached to a gluster node."
       }
@@ -534,7 +534,6 @@
               "sourcePortRange": "*",
               "sourceAddressPrefixes":["131.107.0.0/16"],
               "destinationPortRange": "22",
-              "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
               "access": "Allow",
               "priority": 100,
@@ -548,7 +547,6 @@
               "sourcePortRange": "*",
               "sourceAddressPrefixes":["131.107.0.0/16"],
               "destinationPortRange": "4001",
-              "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
               "access": "Allow",
               "priority": 101,
@@ -562,7 +560,6 @@
               "sourcePortRange": "*",
               "sourceAddressPrefixes":["131.107.0.0/16"],
               "destinationPortRange": "443",
-              "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
               "access": "Allow",
               "priority": 102,
@@ -576,7 +573,6 @@
               "sourcePortRange": "*",
               "sourceAddressPrefixes":["131.107.0.0/16"],
               "destinationPortRange": "80",
-              "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
               "access": "Allow",
               "priority": 103,
@@ -590,7 +586,6 @@
               "sourcePortRange": "*",
               "sourceAddressPrefixes":["131.107.0.0/16"],
               "destinationPortRange": "8088",
-              "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
               "access": "Allow",
               "priority": 104,
@@ -618,7 +613,6 @@
               "sourcePortRange": "*",
               "sourceAddressPrefixes":["131.107.0.0/16"],
               "destinationPortRange": "81",
-              "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
               "access": "Allow",
               "priority": 106,
