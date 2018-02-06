@@ -17,8 +17,9 @@
     },
     "infraNodeSize": {
       "type": "string",
-      "defaultValue": "Standard_D12",
+      "defaultValue": "Standard_E32S_V3",
       "allowedValues": [
+        "Standard_E32S_V3",
         "Standard_DS5_V2",        
         "Standard_DS15_v2",
         "Standard_F8s",
