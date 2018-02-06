@@ -124,7 +124,6 @@ function generateMachinesYml()
     while [ $i -lt $INFRA_COUNT ]
     do
         nextip=$((i + INFRA_IP_START))
-        j=$(seq -f "%03g" $i $i)
         echo "    $INFRA_BASE_NAME$i:"
         echo "      sku: $HEADNODE_SKU"
         echo "      rack: rack0"
