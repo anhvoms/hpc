@@ -44,6 +44,7 @@ function initialSetup()
     [[ ! -f /usr/bin/true ]] && ln -s /bin/true /usr/bin/true
     [[ ! -f /usr/bin/chmod ]] && ln -s /bin/chmod /usr/bin/chmod
 
+    echo '{ "insecure-registries":["master:5000", "upinfra:5000"] }' > /etc/docker/daemon.json
     echo "Initial setup done"
 }
 
