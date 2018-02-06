@@ -32,7 +32,8 @@
         "Standard_NC6s_v2",
         "Standard_NC12s_v2",
         "Standard_NC24s_v2",
-        "Standard_NC24rs_v2"
+        "Standard_NC24rs_v2",
+        "Standard_ND24rs"
       ],
       "metadata": {
         "description": "Size of the worker nodes."
