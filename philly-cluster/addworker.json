@@ -121,7 +121,8 @@
               }
             }
           }
-        ]
+        ],
+        "enableAcceleratedNetworking":true
       }
     },
     {
@@ -227,7 +228,8 @@
               }
             }
           }
-        ]
+        ],
+        "enableAcceleratedNetworking":true
       }
     },
     {
