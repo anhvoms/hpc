@@ -229,7 +229,7 @@ function updateResolvConf()
         do
             nextip=$((i + INFRA_IP_START))
             dnsServer=$INFRA_IP_BASE$nextip
-            until nslookup upinfra $dnsServer; do sleep 5; done;
+            until nslookup upinfra.$CLUSTER.philly.selfhost.corp.microsoft.com $dnsServer; do sleep 5; done;
             ((++i))
         done
  
