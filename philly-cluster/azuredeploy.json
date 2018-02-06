@@ -746,7 +746,8 @@
         "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
-            "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
+            "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]",
+            "[concat(variables('templateBaseUrl'), 'common.sh')]"
           ],
           "commandToExecute": "[concat('bash infradeploy.sh ', variables('networkSettings').statics.lbIP, ' ', parameters('adminUserName'), ' ', variables('infraVMName'), ' ', parameters('infraNodeCount'),  ' ', variables('networkSettings').statics.infraRange.base, '. ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, '. ', variables('networkSettings').statics.workerRange.start, ' ', variables('gfsName'), ' ', parameters('gfsNodeCount'), ' ', variables('networkSettings').statics.gfsRange.base, '. ', variables('networkSettings').statics.gfsRange.start, ' ', parameters('infraNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('gfsNodeSize'), ' ', parameters('clusteryml'), ' ', parameters('cloudconfigYml'), ' ', parameters('clusterId'))]"
         }
