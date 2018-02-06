@@ -230,6 +230,7 @@ function updateResolvConf()
             nextip=$((i + INFRA_IP_START))
             dnsServer=$INFRA_IP_BASE$nextip
             until nslookup upinfra $dnsServer; do sleep 5; done;
+            ((++i))
         done
  
         #Rewrite /etc/resolv.conf after dns is up
