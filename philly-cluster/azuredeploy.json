@@ -72,7 +72,8 @@
         "Standard_NC6s_v2",
         "Standard_NC12s_v2",
         "Standard_NC24s_v2",
-        "Standard_NC24rs_v2"
+        "Standard_NC24rs_v2",
+        "Standard_ND24rs"
       ],
       "metadata": {
         "description": "Size of the worker nodes."
@@ -96,7 +97,7 @@
     },
     "gfsNodeSize": {
       "type": "string",
-      "defaultValue": "Standard_D12",
+      "defaultValue": "Standard_DS5_V2",
       "allowedValues": [
         "Standard_F4s",
         "Standard_F8s",
@@ -110,7 +111,7 @@
     },
     "gfsNodeCount": {
       "type": "int",
-      "defaultValue": 3,
+      "defaultValue": 6,
       "minValue": 0,
       "metadata": {
         "description": "Specify the number of auxiliary nodes."
@@ -118,7 +119,7 @@
     },
     "gfsDataDiskCount": {
       "type": "int",
-      "defaultValue": 25,
+      "defaultValue": 15,
       "metadata": {
           "description": "This number of data disk attached to a gluster node."
       }
@@ -188,7 +189,7 @@
         },
         "gfs": {
           "name": "gfs",
-          "prefix": "10.0.14.0/24",
+          "prefix": "10.0.13.0/24",
           "vnet": "virtualnetwork"
         },
         "fts": {
@@ -203,7 +204,7 @@
           "start": 5
         },
         "gfsRange": {
-          "base": "10.0.14",
+          "base": "10.0.13",
           "start": 4
         },
         "ftsRange": {
