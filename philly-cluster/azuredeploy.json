@@ -15,7 +15,7 @@
         "description": "Admin password. Pick a complex password with uppercase letters, lowercase letters, digits, and symbols. The password should not be longer than 16. Otherwise you'll get a BadRequest error."
       }
     },
-    "headNodeSize": {
+    "infraNodeSize": {
       "type": "string",
       "defaultValue": "Standard_D12",
       "allowedValues": [
@@ -45,6 +45,20 @@
         "description": "Specify the number of infrastructure nodes"
       }
     },
+    "workerResourceGroup":{
+      "type": "string",
+      "defaultValue": "WorkerResourceGroup",
+      "metadata": {
+        "description": "Provide RG for worker. This has to be the same one with the worker AV Set"
+      }
+    },
+    "workerAVSet": {
+      "type": "string",
+      "defaultValue": "existing_avSet",
+      "metadata": {
+        "description": "Provide an existing pinned availability set for worker."
+      }
+    },
     "workerNodeSize": {
       "type": "string",
       "defaultValue": "Standard_NC24rs_v2",
@@ -72,14 +86,7 @@
         "description": "Specify the number of worker nodes."
       }
     },
-    "workerAVSet": {
-      "type": "string",
-      "defaultValue": "existing_avSet",
-      "metadata": {
-        "description": "Provide an existing pinned availability set for worker."
-      }
-    },
-    "secondaryResourceGroup": {
+    "gfsResourceGroup": {
       "type": "string",
       "defaultValue": "GFSResourceGroup",
       "metadata": {
@@ -686,7 +693,7 @@
           "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
         },
         "hardwareProfile": {
-          "vmSize": "[parameters('headNodeSize')]"
+          "vmSize": "[parameters('infraNodeSize')]"
         },
         "osProfile": {
           "computername": "[concat(variables('infraVMName'),copyindex())]",
@@ -746,7 +753,7 @@
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
           ],
-          "commandToExecute": "[concat('bash infradeploy.sh ', variables('networkSettings').statics.lbIP, ' ', parameters('adminUserName'), ' ', variables('infraVMName'), ' ', parameters('infraNodeCount'),  ' ', variables('networkSettings').statics.infraRange.base, '. ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, '. ', variables('networkSettings').statics.workerRange.start, ' ', variables('gfsName'), ' ', parameters('gfsNodeCount'), ' ', variables('networkSettings').statics.gfsRange.base, '. ', variables('networkSettings').statics.gfsRange.start, ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('gfsNodeSize'), ' ', parameters('clusteryml'), ' ', parameters('cloudconfigYml'), ' ', parameters('clusterId'))]"
+          "commandToExecute": "[concat('bash infradeploy.sh ', variables('networkSettings').statics.lbIP, ' ', parameters('adminUserName'), ' ', variables('infraVMName'), ' ', parameters('infraNodeCount'),  ' ', variables('networkSettings').statics.infraRange.base, '. ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, '. ', variables('networkSettings').statics.workerRange.start, ' ', variables('gfsName'), ' ', parameters('gfsNodeCount'), ' ', variables('networkSettings').statics.gfsRange.base, '. ', variables('networkSettings').statics.gfsRange.start, ' ', parameters('infraNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('gfsNodeSize'), ' ', parameters('clusteryml'), ' ', parameters('cloudconfigYml'), ' ', parameters('clusterId'))]"
         }
       }
     },
@@ -757,7 +764,7 @@
       "dependsOn": [
         "infraExtCopy"
       ],
-      "resourceGroup": "[parameters('secondaryResourceGroup')]",
+      "resourceGroup": "[parameters('gfsResourceGRoup')]",
       "properties": {
         "mode": "Incremental",
         "templateLink": {
@@ -790,6 +797,7 @@
       "dependsOn": [
         "nestedTemplateGfs"
       ],
+      "resourceGroup": "[parameters('workerResourceGRoup')]",
       "properties": {
           "mode": "Incremental",
           "templateLink": {
