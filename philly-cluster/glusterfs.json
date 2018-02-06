@@ -117,10 +117,12 @@
         "needSecondRG": "[if(greater(variables('totalDisks'),parameters('maxDisksPerRG')),1,0)]",
         "firstRGCount": "[if(equals(variables('needSecondRG'),1), div(parameters('nodeCount'),2),parameters('nodeCount'))]",
         "secondRGCount": "[if(equals(variables('needSecondRG'),0),1,sub(parameters('nodeCount'), variables('firstRGCount')))]",
-        "cmdToExecute": "[concat('./glusterfs_bootstrap.sh ', parameters('nodePrefix'), ' ',  parameters('subnetIpBase'), ' ', parameters('subnetIPOffset'), ' ', add(parameters('nodeCount'),parameters('secondCount')))]",
+        "cmdToExecute": "[concat('./glusterfs_bootstrap.sh ', 'none ', parameters('adminUser'), ' ', parameters('nodePrefix'), ' ',  parameters('subnetIpBase'), ' ', parameters('subnetIPOffset'), ' ', add(parameters('nodeCount'),parameters('secondCount')))]",
+        "commonUtil": "https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/common.sh",
         "remoteBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/glusterfs_bootstrap.sh",
         "remoteFSLink": "https://raw.githubusercontent.com/Azure/batch-shipyard/3.0.3/scripts/shipyard_remotefs_bootstrap.sh",
         "scripts": [
+            "[variables('commonUtil')]",
             "[variables('remoteFSLink')]",
             "[variables('remoteBootstrapLink')]"
         ]

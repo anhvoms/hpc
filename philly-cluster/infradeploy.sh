@@ -7,8 +7,8 @@ fi
 
 echo "Script arguments: $*"
 
-if [ $# != 21 ]; then
-    echo "Usage: $0 <InfraCount> <AdminUserName> <AdminPassword> <InfraBaseName> <IpBase> <IpStart> <WorkerBaseName> <WorkerCount> <WorkerIpBase> <WorkerIpStart> <AuxBaseName> <AuxNodeCount> <AuxIpBase> <AuxIpStart> <TemplateBaseUrl> <InfraSKU> <WorkerSKU> <AuxSKU> <ClusterYmlUrl> <CloudConfigTemplate> <ClusterId>"
+if [ $# != 20 ]; then
+    echo "Usage: $0 <LoadBalancerIP> <AdminUserName> <InfraBaseName> <InfraCount> <IpBase> <IpStart> <WorkerBaseName> <WorkerCount> <WorkerIpBase> <WorkerIpStart> <GfsBaseName> <GfsCount> <GfsIpBase> <GfsIpStart> <InfraSKU> <WorkerSKU> <GfsSKU> <ClusterYmlUrl> <CloudConfigTemplate> <ClusterId>"
     exit 1
 fi
 
@@ -20,13 +20,11 @@ if [[ $NAME == *"worker"* ]]; then isWorker=1; fi
 isInfra=0
 if [[ $NAME == *"infra"* ]]; then isInfra=1; fi
 
-#This is currently hardcoded, should be passed as an argument
-LOAD_BALANCER_IP=10.0.0.4
-
-INFRA_COUNT=$1
+LOAD_BALANCER_IP=$1
 ADMIN_USERNAME=$2
-ADMIN_PASSWORD=$3
-INFRA_BASE_NAME=$4
+
+INFRA_BASE_NAME=$3
+INFRA_COUNT=$4
 INFRA_IP_BASE=$5
 INFRA_IP_START=$6
 
@@ -35,18 +33,17 @@ WORKER_COUNT=$8
 WORKER_IP_BASE=$9
 WORKER_IP_START=${10}
 
-AUX_BASE_NAME=${11}
-AUX_COUNT=${12}
-AUX_IP_BASE=${13}
-AUX_IP_START=${14}
+GFS_BASE_NAME=${11}
+GFS_COUNT=${12}
+GFS_IP_BASE=${13}
+GFS_IP_START=${14}
 
-TEMPLATE_BASE=${15}
-HEADNODE_SKU=${16}
-WORKERNODE_SKU=${17}
-AUXNODE_SKU=${18}
-CLUSTERYML=${19}
-CLOUDCONFIG=${20}
-CLUSTER=${21}
+HEADNODE_SKU=${15}
+WORKERNODE_SKU=${16}
+GFSNODE_SKU=${17}
+CLUSTERYML=${18}
+CLOUDCONFIG=${19}
+CLUSTER=${20}
 
 PHILLY_HOME=/var/lib/philly
 masterIndex=0
@@ -78,58 +75,6 @@ function startServiceWaitForExited()
 }
 
 
-function initialSetup()
-{
-    echo "Initial Setup: get new machine id, copy stored .ssh folder"
-
-    # update machine-id because all VM's start from the same image.
-    # fleet/etcd uses /etc/machine-id to self identify
-    rm /etc/machine-id
-    systemd-machine-id-setup
-
-    # Don't require password for HPC user sudo
-    echo "$ADMIN_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-
-    # Disable tty requirement for sudo
-    sed -i 's/^Defaults[ ]*requiretty/# Defaults requiretty/g' /etc/sudoers
-    mkdir -p /home/$ADMIN_USERNAME/.ssh
-    mkdir -p ~/.ssh
-    cp $PHILLY_HOME/bootstrap/.ssh/* /home/$ADMIN_USERNAME/.ssh
-    cp $PHILLY_HOME/bootstrap/.ssh/* ~/.ssh
-
-    chmod 700 /home/$ADMIN_USERNAME/.ssh
-    chmod 400 /home/$ADMIN_USERNAME/.ssh/config
-    chmod 640 /home/$ADMIN_USERNAME/.ssh/authorized_keys
-    chmod 400 /home/$ADMIN_USERNAME/.ssh/id_rsa
-    chown -R $ADMIN_USERNAME:$ADMIN_USERNAME /home/$ADMIN_USERNAME/.ssh
-
-    usermod -a -G systemd-journal $ADMIN_USERNAME
-    usermod -a -G docker $ADMIN_USERNAME
-    [[ ! -d /var/nfshare ]] && mkdir /var/nfsshare
-    [[ ! -d /var/nfs-mount ]] && mkdir /var/nfs-mount
-    [[ ! -d /var/gfs ]] && mkdir /var/gfs
-
-
-    #if there is a datadisk mounted on sdc we partition it and format it
-    if [[ -z $(fdisk -l /dev/sdc 2>&1 | grep "cannot open") ]];
-    then
-        if [ ! -b /dev/sdc1 ];
-        then
-            (echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk /dev/sdc
-            mkfs -t ext4 /dev/sdc1
-        fi
-    fi
-
-    [[ ! -f /usr/bin/mount ]] && ln -s /bin/mount /usr/bin/mount
-    [[ ! -f /usr/sbin/sysctl ]] && ln -s /sbin/sysctl /usr/sbin/sysctl
-    [[ ! -f /usr/bin/bash ]] && ln -s /bin/bash /usr/bin/bash
-    [[ ! -f /usr/bin/true ]] && ln -s /bin/true /usr/bin/true
-    [[ ! -f /usr/bin/chmod ]] && ln -s /bin/chmod /usr/bin/chmod
-
-    echo "Initial setup done"
-}
-
-
 function fixHostsFile()
 {
     echo "Fixing up hosts file to include entries to other infrastructure nodes and worker nodes"
@@ -155,14 +100,6 @@ function fixHostsFile()
         ((++i))
     done
 
-    i=0
-    while [ $i -lt $AUX_COUNT ]
-    do
-        nextip=$((i + AUX_IP_START))
-         echo $AUX_IP_BASE$nextip $AUX_BASE_NAME$i >> /etc/hosts
-        ((++i))
-    done
-
     echo "Finished setting up hosts file"
 }
 
@@ -179,14 +116,15 @@ function generateMachinesYml()
     HEADNODE_SKU=${HEADNODE_SKU//_/-} #change dash into underscore
     WORKERNODE_SKU=${WORKERNODE_SKU,,} #switch to lowercase
     WORKERNODE_SKU=${WORKERNODE_SKU//_/-} #change dash into underscore
-    AUXNODE_SKU=${AUXNODE_SKU,,} #switch to lowercase
-    AUXNODE_SKU=${AUXNODE_SKU//_/-} #change dash into underscore
+    GFSNODE_SKU=${GFSNODE_SKU,,} #switch to lowercase
+    GFSNODE_SKU=${GFSNODE_SKU//_/-} #change dash into underscore
 
     {
     i=0
     while [ $i -lt $INFRA_COUNT ]
     do
         nextip=$((i + INFRA_IP_START))
+        j=$(seq -f "%03g" $i $i)
         echo "    $INFRA_BASE_NAME$i:"
         echo "      sku: $HEADNODE_SKU"
         echo "      rack: rack0"
@@ -210,26 +148,19 @@ function generateMachinesYml()
     done
 
     i=0
-    while [ $i -lt $AUX_COUNT ]
+    while [ $i -lt $GFS_COUNT ]
     do
-        nextip=$((i + AUX_IP_START))
-        echo "    $AUX_BASE_NAME$i:"
-        echo "      sku: $AUXNODE_SKU"
+        nextip=$((i + WORKER_IP_START))
+        j=$(seq -f "%03g" $i $i)
+        echo "    $GFS_BASE_NAME$j:"
+        echo "      sku: $GFS_SKU"
         echo "      rack: rack0"
         echo "      rackLocation: 1"
         echo "      outlet: 1.0"
-        if [[ $i -eq 0 ]]
-        then
-            echo "      role: nfs"
-        elif [[ $i -eq 1 ]]
-        then
-            echo "      role: ganglia-master"
-        else
-            echo "      role: auxiliary"
-        fi
+        echo "      role: auxiliary.gfs"
         echo "      mac: 00:00:00:00:00:00"
-        echo "      ip: $AUX_IP_BASE$nextip"
-        echo "      os: prod-infra"
+        echo "      ip: $GFS_IP_BASE$nextip"
+        echo "      os: prod-worker"
         ((++i))
     done
 
@@ -281,75 +212,6 @@ function updateConfigFile()
 }
 
 
-function slurmMasterSetup()
-{
-    sudo chmod g-w /var/log
-
-    # Download slurm.conf and fill in the node info
-    SLURMCONF=/tmp/slurm.conf.$$
-
-    wget $TEMPLATE_BASE/slurm.template.conf -O $SLURMCONF
-    sed -i -- 's/__MASTERNODE__/'"$NAME"'/g' $SLURMCONF
-
-    lastvm=$((INFRA_COUNT - 1))
-    sed -i -- 's/__WORKERNODES__/'"$INFRA_BASE_NAME"'[1-'"$lastvm"']/g' $SLURMCONF
-    cp -f $SLURMCONF /etc/slurm-llnl/slurm.conf
-    chown slurm /etc/slurm-llnl/slurm.conf
-    chmod o+w /var/spool # Write access for slurmctld log. Consider switch log file to another location
-
-    # Start the master daemon service
-    sudo -u slurm /usr/sbin/slurmctld
-    munged --force
-    slurmd
-
-    #Prepare mungekey
-    mungekey=/tmp/munge.key.$$
-    cp -f /etc/munge/munge.key $mungekey
-    chown $ADMIN_USERNAME $mungekey
-    #Looping all other infranodes to setup slurm
-    i=1
-    while [ $i -lt $INFRA_COUNT ]
-    do
-        worker=$INFRA_BASE_NAME$i
-
-        echo waiting for $worker to be ready
-
-        second=0
-        while [ -n "$(echo a|ncat $worker 8090 2>&1)" ]; do
-            ((second += 5))
-            sleep 5
-        done
-
-        echo $worker is ready after $second seconds of waiting
-
-        #setting up slurm
-        sudo -u $ADMIN_USERNAME scp $mungekey $ADMIN_USERNAME@$worker:/tmp/munge.key
-        sudo -u $ADMIN_USERNAME scp $SLURMCONF $ADMIN_USERNAME@$worker:/tmp/slurm.conf
-        sudo -u $ADMIN_USERNAME scp /tmp/hosts.$$ $ADMIN_USERNAME@$worker:/tmp/hosts
-        sudo -u $ADMIN_USERNAME ssh $ADMIN_USERNAME@$worker << 'ENDSSH1'
-        sudo chmod g-w /var/log
-        sudo cp -f /tmp/munge.key /etc/munge/munge.key
-        sudo chown munge /etc/munge/munge.key
-        sudo chgrp munge /etc/munge/munge.key
-        sudo rm -f /tmp/munge.key
-        sudo /usr/sbin/munged --force # ignore egregrious security warning
-        sudo cp -f /tmp/slurm.conf /etc/slurm-llnl/slurm.conf
-        sudo chown slurm /etc/slurm-llnl/slurm.conf
-        sudo slurmd
-ENDSSH1
-
-        ((++i))
-    done
-    rm -f $mungekey
-}
-
-
-function slurmSlaveSetup()
-{
-    ncat -v -l 8090
-}
-
-
 function updateResolvConf()
 {
     #worker setup is not started until infra nodes are finished setting up
@@ -395,7 +257,7 @@ function setupSlurm()
 }
 
 
-function applyCloudConfig()
+function applyCloudConfigInfra()
 {
     [[ ! -d /var/lib/coreos-install ]] && mkdir -p /var/lib/coreos-install
 
@@ -426,9 +288,9 @@ function applyCloudConfig()
     sed -i "s/exit 0//g" /etc/rc.local
     {
         echo "LOAD_BALANCER_IP=$LOAD_BALANCER_IP"
-        echo '[[ ! -f "/var/lib/coreos-install/user_data" ]] &&'
+        echo '[ ! -f "/var/lib/coreos-install/user_data" ] &&'
         echo '    sudo curl "http://$LOAD_BALANCER_IP/cloud-config/$(hostname).yml?reconfigure" -o /var/lib/coreos-install/user_data'
-        echo '[[ -f "/var/lib/coreos-install/user_data" ]] &&'
+        echo '[ -f "/var/lib/coreos-install/user_data" ] &&'
         echo '    coreos-cloudinit --from-file=/var/lib/coreos-install/user_data'
     } >> /etc/rc.local
 }
@@ -522,16 +384,16 @@ function startOtherServices()
         done
 
         i=0
-        while [ $i -lt $AUX_COUNT ]
+        while [ $i -lt $GFS_COUNT ]
         do
-            nextip=$((i + AUX_IP_START))
-            etcdctl mkdir stateMachine/$AUX_BASE_NAME$i
-            etcdctl mk stateMachine/$AUX_BASE_NAME$i/currentState UP
-            etcdctl mk stateMachine/$AUX_BASE_NAME$i/goalState UP
+            nextip=$((i + GFS_IP_START))
+            etcdctl mkdir stateMachine/$GFS_BASE_NAME$i
+            etcdctl mk stateMachine/$GFS_BASE_NAME$i/currentState UP
+            etcdctl mk stateMachine/$GFS_BASE_NAME$i/goalState UP
 
-            etcdctl mkdir resources/gpu/$AUX_IP_BASE$nextip
-            etcdctl mkdir resources/port/$AUX_IP_BASE$nextip
-            etcdctl mkdir resources/portRangeStart/$AUX_IP_BASE$nextip
+            etcdctl mkdir resources/gpu/$GFS_IP_BASE$nextip
+            etcdctl mkdir resources/port/$GFS_IP_BASE$nextip
+            etcdctl mkdir resources/portRangeStart/$GFS_IP_BASE$nextip
             ((++i))
         done
 
@@ -553,53 +415,20 @@ function startOtherServices()
     fi
 }
 
-
-function enableRDMA()
-{
-    if [[ $isWorker -eq 1 && "$WORKERNODE_SKU" == "standard-nc24rs-v2" ]];
-    then
-        {
-            echo "#Enable RDMA"
-            echo "OS.EnableRDMA=y"
-            echo "OS.UpdateRdmaDriver=y"
-        } >> /etc/waagent.conf
-    fi
-}
-
-
-function startNfs()
-{
-    #
-    # Query etcd to find out if this machine is responsible for nfs server
-    # (If etcd is not up we have a bigger problem than starting nfs)
-    #
-    if [[ $isInfra -eq 0 ]]; then
-        if [[ $(etcdctl --endpoints "http://$LOAD_BALANCER_IP:4001" get /config/machines/$NAME/role) == "nfs" ]];
-        then
-            systemctl restart nfs-kernel-server
-            sleep 10
-
-            startServiceWaitForExited nfs-mount
-            startServiceWaitForRunning hadoop-node-manager
-        fi
-    fi
-}
-
-#
 # Main script body
 #
+source ./common.sh
 
-initialSetup
+initialSetup $ADMIN_USERNAME $PHILLY_HOME
+formatDatadisks
 fixHostsFile
 
 generateMachinesYml
 updateConfigFile
-setupSlurm
 
-applyCloudConfig
+applyCloudConfigInfra
 startCoreServices
-startNfs
-startHadoopServices
-startOtherServices
-enableRDMA
+
+#startHadoopServices
+#startOtherServices
 exit 0

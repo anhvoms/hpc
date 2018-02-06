@@ -19,8 +19,8 @@
       "type": "string",
       "defaultValue": "Standard_D12",
       "allowedValues": [
-        "Standard_DS11_v2",
-        "Standard_DS12_v2",
+        "Standard_DS5_V2",        
+        "Standard_DS15_v2",
         "Standard_F8s",
         "Standard_F16s",
         "Standard_NC6",
@@ -39,7 +39,7 @@
     "infraNodeCount": {
       "type": "int",
       "defaultValue": 5,
-      "minValue": 5,
+      "minValue": 0,
       "maxValue": 10,
       "metadata": {
         "description": "Specify the number of infrastructure nodes"
@@ -66,38 +66,59 @@
     "workerNodeCount": {
       "type": "int",
       "defaultValue": 2,
-      "minValue": 2,
+      "minValue": 0,
       "maxValue": 100,
       "metadata": {
         "description": "Specify the number of worker nodes."
       }
     },
-    "auxNodeSize": {
+    "workerAVSet": {
+      "type": "string",
+      "defaultValue": "existing_avSet",
+      "metadata": {
+        "description": "Provide an existing pinned availability set for worker."
+      }
+    },
+    "secondaryResourceGroup": {
+      "type": "string",
+      "defaultValue": "GFSResourceGroup",
+      "metadata": {
+          "description": "Provide RG for gluster and FTS"
+      }
+    },
+    "gfsNodeSize": {
       "type": "string",
       "defaultValue": "Standard_D12",
       "allowedValues": [
+        "Standard_F4s",
         "Standard_F8s",
         "Standard_F16s",
-        "Standard_NC6",
-        "Standard_NC12",
-        "Standard_NC24",
-        "Standard_NC24r",
-        "Standard_NC6s_v2",
-        "Standard_NC12s_v2",
-        "Standard_NC24s_v2",
-        "Standard_NC24rs_v2"
+        "Standard_DS12"
       ],
       "metadata": {
-        "description": "Size of the auxiliary nodes."
+        "description": "Size of the gluster nodes."
       }
     },
-    "auxNodeCount": {
+    "gfsNodeCount": {
       "type": "int",
-      "defaultValue": 2,
-      "minValue": 2,
-      "maxValue": 5,
+      "defaultValue": 3,
+      "minValue": 0,
       "metadata": {
         "description": "Specify the number of auxiliary nodes."
+      }
+    },
+    "gfsDataDiskCount": {
+      "type": "int",
+      "defaultValue": "25",
+      "metadata": {
+          "description": "This number of data disk attached to a gluster node."
+      }
+    },
+    "gfsDataDiskSize": {
+      "type": "int",
+      "defaultValue": 4095,
+      "metadata": {
+          "description": "Size of each data disk in gluster nodes."
       }
     },
     "OSImage": {
@@ -105,6 +126,13 @@
       "defaultValue": "provide_your_image_id_string",
       "metadata": {
         "description": "Image to use for all instances of the infrastructure nodes."
+      }
+    },
+    "virtualnetworkID":{
+      "type": "string",
+      "defaultValue": "create_new",
+      "metadata": {
+        "description": "provide an existing vnet or create a new one. worker and infra will be deployed to core subnet, hot storage to gfshot, warm to gfswarm, file transfer to fts"
       }
     },
     "clusterYml": {
@@ -123,7 +151,7 @@
     },
     "clusterId": {
       "type": "string",
-      "defaultValue": "eu1",
+      "defaultValue": "sc1",
       "minLength": 3,
       "maxLength": 3,
       "metadata": {
@@ -136,47 +164,66 @@
     "publicIPAddressName": "publicips",
     "infraVMName": "pinfra",
     "workerVMName": "pworker",
-    "auxVMName": "paux",
-    "avSetName": "avSet",
-    "nicName": "nic",
+    "gfsName": "gfs",
+    "ftsName": "fts",
+    "avSetName": "infraAVSet",
+    "nicName": "nic-",
     "networkSettings": {
       "virtualNetworkName": "virtualnetwork",
       "addressPrefix": "10.0.0.0/16",
       "subnet": {
-        "dse": {
-          "name": "dse",
+        "core": {
+          "name": "core",
           "prefix": "10.0.0.0/22",
+          "vnet": "virtualnetwork"
+        },
+        "gfs": {
+          "name": "gfshot",
+          "prefix": "10.0.14.0/24",
+          "vnet": "virtualnetwork"
+        },
+        "fts": {
+          "name": "fts",
+          "prefix": "10.0.15.0/24",
           "vnet": "virtualnetwork"
         }
       },
       "statics": {
         "workerRange": {
-          "base": "10.0.0.",
+          "base": "10.0.0",
           "start": 5
         },
-        "auxRange": {
-          "base": "10.0.0.",
-          "start": 250
+        "gfsRange": {
+          "base": "10.0.14",
+          "start": 4
+        },
+        "ftsRange": {
+          "base": "10.0.15",
+          "start": 4
         },
         "infraRange": {
-          "base": "10.0.0.",
+          "base": "10.0.1",
           "start": 240
         },
         "lbIP": "10.0.0.4"
       }
     },
+    "infraCount":"[if(greater(parameters('infraNodeCount'),0),parameters('infraNodeCount'), 1)]",
     "externalLBIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses','publicIPExternalLB')]",
     "internalLBName":"internalLoadBalancer",
     "internalLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('internalLBName'))]",
     "externalLBName":"externalLoadBalander",
     "externalLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('externalLBName'))]",
-    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('networkSettings').virtualNetworkName)]",
-    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.dse.name)]",
+    "vnetID": "[if(equals(parameters('virtualnetworkID'),'create_new'),resourceId('Microsoft.Network/virtualNetworks',variables('networkSettings').virtualNetworkName),parameters('virtualnetworkID'))]",
+    "coreSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.core.name)]",
+    "gfsSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.gfs.name)]",
+    "ftsSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.fts.name)]",
     "templateBaseUrl": "https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/"
   },
   "resources": [
     {
       "type": "Microsoft.Compute/availabilitySets",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
       "name": "[variables('avSetName')]",
       "apiVersion": "2017-03-30",
       "location": "[resourceGroup().location]",
@@ -185,11 +232,12 @@
       },
       "properties": {
         "platformFaultDomainCount": 2,
-        "platformUpdateDomainCount": 5
+        "platformUpdateDomainCount": 8
       }
     },
     {
       "apiVersion": "2017-06-01",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "publicIPExternalLB",
       "location": "[resourceGroup().location]",
@@ -199,6 +247,7 @@
     },
     {
       "apiVersion": "2017-10-01",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
       "type": "Microsoft.Network/loadBalancers",
       "name": "[variables('externalLBName')]",
       "location": "[resourceGroup().location]",
@@ -285,6 +334,7 @@
     {
       "apiVersion": "2017-10-01",
       "type": "Microsoft.Network/loadBalancers",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
       "name": "[variables('internalLBName')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
@@ -295,7 +345,7 @@
           {
             "properties": {
               "subnet": {
-                "id": "[variables('subnetRef')]"
+                "id": "[variables('coreSubnetRef')]"
               },
               "privateIPAddress": "[variables('networkSettings').statics.lbIP]",
               "privateIPAllocationMethod": "Static"
@@ -416,6 +466,7 @@
     {
       "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/virtualNetworks",
+      "condition":"[equals(parameters('virtualnetworkID'),'create_new')]",
       "name": "[variables('networkSettings').virtualNetworkName]",
       "location": "[resourceGroup().location]",
       "properties": {
@@ -426,9 +477,21 @@
         },
         "subnets": [
           {
-            "name": "[variables('networkSettings').subnet.dse.name]",
+            "name": "[variables('networkSettings').subnet.core.name]",
             "properties": {
-              "addressPrefix": "[variables('networkSettings').subnet.dse.prefix]"
+              "addressPrefix": "[variables('networkSettings').subnet.core.prefix]"
+            }
+          },
+          {
+            "name": "[variables('networkSettings').subnet.gfs.name]",
+            "properties": {
+              "addressPrefix": "[variables('networkSettings').subnet.gfs.prefix]"
+            }
+          },
+          {
+            "name": "[variables('networkSettings').subnet.fts.name]",
+            "properties": {
+              "addressPrefix": "[variables('networkSettings').subnet.fts.prefix]"
             }
           }
         ]
@@ -436,12 +499,13 @@
     },
     {
       "type": "Microsoft.Network/publicIPAddresses",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
       "apiVersion": "2017-06-01",
       "name": "[concat(variables('publicIPAddressName'), copyindex())]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "publicIPCopy",
-        "count": "[parameters('infraNodeCount')]"
+        "count": "[variables('infraCount')]"
       },
       "properties": {
         "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
@@ -459,11 +523,96 @@
             "properties": {
               "protocol": "*",
               "sourcePortRange": "*",
+              "sourceAddressPrefixes":["131.107.0.0/16"],
               "destinationPortRange": "22",
               "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
               "access": "Allow",
               "priority": 100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "ETCD",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefixes":["131.107.0.0/16"],
+              "destinationPortRange": "4001",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 101,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "HTTPS",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefixes":["131.107.0.0/16"],
+              "destinationPortRange": "443",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 102,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "HTTP",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefixes":["131.107.0.0/16"],
+              "destinationPortRange": "80",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 103,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "HRM",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefixes":["131.107.0.0/16"],
+              "destinationPortRange": "8088",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 104,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "HNN",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefixes":["131.107.0.0/16"],
+              "destinationPortRange": "50070",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 105,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Proxy",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefixes":["131.107.0.0/16"],
+              "destinationPortRange": "81",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 106,
               "direction": "Inbound"
             }
           }
@@ -474,6 +623,7 @@
     {
       "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/networkInterfaces",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
       "name": "[concat(variables('nicName'),'infra', copyindex())]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
@@ -485,7 +635,7 @@
       ],
       "copy": {
         "name": "infraNetworkCopy",
-        "count": "[parameters('infraNodeCount')]"
+        "count": "[variables('infraCount')]"
       },
       "properties": {
         "ipConfigurations": [
@@ -493,12 +643,12 @@
             "name": "ipconfig1",
             "properties": {
               "privateIPAllocationMethod": "Static",
-              "privateIPAddress": "[concat(variables('networkSettings').statics.infraRange.base, copyindex(variables('networkSettings').statics.infraRange.start))]",
+              "privateIPAddress": "[concat(variables('networkSettings').statics.infraRange.base, '.', copyindex(variables('networkSettings').statics.infraRange.start))]",
               "publicIPAddress": {
                 "id": "[resourceId('Microsoft.Network/publicIPAddresses',concat(variables('publicIPAddressName'), copyindex()))]"
               },
               "subnet": {
-                "id": "[variables('subnetRef')]"
+                "id": "[variables('coreSubnetRef')]"
               },
               "loadBalancerBackendAddressPools": [
                 {
@@ -520,6 +670,7 @@
     {
       "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
       "name": "[concat(variables('infraVMName'), copyindex())]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
@@ -528,7 +679,7 @@
       ],
       "copy": {
         "name": "infraVMCopy",
-        "count": "[parameters('infraNodeCount')]"
+        "count": "[variables('infraCount')]"
       },
       "properties": {
         "availabilitySet": {
@@ -576,6 +727,7 @@
     {
       "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines/extensions",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
       "name": "[concat(variables('infraVMName'), copyindex(), '/Installation')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
@@ -583,7 +735,7 @@
       ],
       "copy": {
         "name": "infraExtCopy",
-        "count": "[parameters('infraNodeCount')]"
+        "count": "[variables('infraCount')]"
       },
       "properties": {
         "publisher": "Microsoft.Azure.Extensions",
@@ -594,230 +746,74 @@
           "fileUris": [
             "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
           ],
-          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'), ' ', parameters('cloudconfigYml'), ' ', parameters('clusterId'))]"
+          "commandToExecute": "[concat('bash infradeploy.sh ', variables('networkSettings').statics.lbIP, ' ', parameters('adminUserName'), ' ', variables('infraVMName'), ' ', parameters('infraNodeCount'),  ' ', variables('networkSettings').statics.infraRange.base, '. ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, '. ', variables('networkSettings').statics.workerRange.start, ' ', variables('gfsName'), ' ', parameters('gfsNodeCount'), ' ', variables('networkSettings').statics.gfsRange.base, '. ', variables('networkSettings').statics.gfsRange.start, ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('gfsNodeSize'), ' ', parameters('clusteryml'), ' ', parameters('cloudconfigYml'), ' ', parameters('clusterId'))]"
         }
       }
     },
     {
-      "apiVersion": "2017-06-01",
-      "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('nicName'), 'worker', if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex())]",
-      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-05-10",
+      "name": "nestedTemplateGfs",
+      "type": "Microsoft.Resources/deployments",
       "dependsOn": [
-        "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('internalLBName'))]"
+        "infraExtCopy"
       ],
-      "copy": {
-        "name": "workerNetworkCopy",
-        "count": "[parameters('workerNodeCount')]"
-      },
+      "resourceGroup": "[parameters('secondaryResourceGroup')]",
       "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "privateIPAllocationMethod": "Static",
-              "privateIPAddress": "[concat(variables('networkSettings').statics.workerRange.base, copyindex(variables('networkSettings').statics.workerRange.start))]",
-              "subnet": {
-                "id": "[variables('subnetRef')]"
-              }
-            }
-          }
-        ]
+        "mode": "Incremental",
+        "templateLink": {
+            "uri":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/addnodes.json",
+            "contentVersion":"1.0.0.0"
+        },
+        "parameters": {
+            "adminUserName":{"value": "[parameters('adminUserName')]"},
+            "adminPassword":{"value": "[parameters('adminPassword')]"},
+            "nodeType":{"value":"gluster"},
+            "nodePrefix":{"value": "[variables('gfsName')]"},
+            "nodeSize":{"value": "[parameters('gfsNodeSize')]"},
+            "nodeCount":{"value": "[parameters('gfsNodeCount')]"},
+            "startIndex":{"value": "0"},
+            "subnetIpBase":{"value": "[variables('networkSettings').statics.gfsRange.base]"},
+            "subnetIpOffset":{"value": "variables('networkSettings').statics.gfsRange.start"},
+            "nodeDataDiskCount":{"value": "[parameters('gfsDataDiskCount')]"},
+            "nodeDataDiskSize":{"value": "[parameters('gfsDataDiskSize')]"},
+            "OSImage":{"value": "[parameters('OSImage')]"},
+            "loadBalancerIP":{"value": "[variables('networkSettings').statics.lbIP]"},
+            "avSet":{"value":"[parameters('workerAVSet')]"},
+            "subnet":{"value": "[variables('gfsSubnetRef')]"}
+        }
       }
     },
     {
-      "apiVersion": "2017-03-30",
-      "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('workerVMName'), if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex())]",
-      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-05-10",
+      "name": "nestedTemplateWorker",
+      "type": "Microsoft.Resources/deployments",
       "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'worker', if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex())]",
-        "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
+        "nestedTemplateGfs"
       ],
-      "copy": {
-        "name": "workerVMCopy",
-        "count": "[parameters('workerNodeCount')]"
-      },
       "properties": {
-        "availabilitySet": {
-          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
-        },
-        "hardwareProfile": {
-          "vmSize": "[parameters('workerNodeSize')]"
-        },
-        "osProfile": {
-          "computername": "[concat(variables('workerVMName'), if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex())]",
-          "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "id": "[parameters('OSImage')]"
+          "mode": "Incremental",
+          "templateLink": {
+              "uri":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/addnodes.json",
+              "contentVersion":"1.0.0.0"
           },
-          "osDisk": {
-            "createOption": "FromImage",
-            "diskSizeGB": 1023,
-            "managedDisk": {
-              "storageAccountType": "Premium_LRS"
-            }
-          },
-          "dataDisks": [
-            {
-              "createOption": "Empty",
-              "lun": 0,
-              "diskSizeGB": 1023,
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            }
-          ]                      
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'worker', if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex()))]"
-            }
-          ]
+          "parameters": {
+            "adminUserName":{"value": "[parameters('adminUserName')]"},
+            "adminPassword":{"value": "[parameters('adminPassword')]"},
+            "nodeType":{"value":"worker"},
+            "nodePrefix":{"value": "[variables('workerVMName')]"},
+            "nodeSize":{"value": "[parameters('workerNodeSize')]"},
+            "nodeCount":{"value": "[parameters('workerNodeCount')]"},
+            "startIndex":{"value": "0"},
+            "subnetIpBase":{"value": "[variables('networkSettings').statics.workerRange.base]"},
+            "subnetIpOffset":{"value": "variables('networkSettings').statics.workerRange.start"},
+            "nodeDataDiskCount":{"value": "1"},
+            "nodeDataDiskSize":{"value": "1023"},
+            "OSImage":{"value": "[parameters('OSImage')]"},
+            "loadBalancerIP":{"value": "[variables('networkSettings').statics.lbIP]"},
+            "avSet":{"value":"[parameters('workerAVSet')]"},
+            "subnet":{"value": "[variables('coreSubnetRef')]"}
         }
       }
-    },
-    {
-      "apiVersion": "2017-03-30",
-      "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('workerVMName'), if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex(), '/Installation')]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "auxExtCopy",
-        "[concat('Microsoft.Compute/virtualMachines/', variables('workerVMName'), if(less(copyindex(),10),'000',if(less(copyindex(),100),'00','0')), copyindex())]"
-      ],
-      "copy": {
-        "name": "workerExtCopy",
-        "count": "[parameters('workerNodeCount')]"
-      },
-      "properties": {
-        "publisher": "Microsoft.Azure.Extensions",
-        "type": "CustomScript",
-        "typeHandlerVersion": "2.0",
-        "autoUpgradeMinorVersion": true,
-        "settings": {
-          "fileUris": [
-            "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
-          ],
-          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'), ' ', parameters('cloudconfigYml'), ' ', parameters('clusterId'))]"
-        }
-      }
-    },
-    {
-      "apiVersion": "2017-06-01",
-      "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('nicName'), 'aux', copyindex())]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('internalLBName'))]"
-      ],
-      "copy": {
-        "name": "auxNetworkCopy",
-        "count": "[parameters('auxNodeCount')]"
-      },
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "privateIPAllocationMethod": "Static",
-              "privateIPAddress": "[concat(variables('networkSettings').statics.auxRange.base, copyindex(variables('networkSettings').statics.auxRange.start))]",
-              "subnet": {
-                "id": "[variables('subnetRef')]"
-              }
-            }
-          }
-        ],
-        "enableAcceleratedNetworking":true
-      }
-    },
-    {
-      "apiVersion": "2017-03-30",
-      "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('auxVMName'), copyindex())]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), 'aux', copyindex())]",
-        "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
-      ],
-      "copy": {
-        "name": "auxVMCopy",
-        "count": "[parameters('auxNodeCount')]"
-      },
-      "properties": {
-        "availabilitySet": {
-          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
-        },
-        "hardwareProfile": {
-          "vmSize": "[parameters('auxNodeSize')]"
-        },
-        "osProfile": {
-          "computername": "[concat(variables('auxVMName'), copyindex())]",
-          "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "id": "[parameters('OSImage')]"
-          },
-          "osDisk": {
-            "createOption": "FromImage",
-            "diskSizeGB": 1023,
-            "managedDisk": {
-              "storageAccountType": "Premium_LRS"
-            }
-          },
-          "dataDisks": [
-            {
-              "createOption": "Empty",
-              "lun": 0,
-              "diskSizeGB": 1023,
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            }
-          ]
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), 'aux', copyindex()))]"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "apiVersion": "2017-03-30",
-      "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('auxVMName'), copyindex(), '/Installation')]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "infraExtCopy",
-        "[concat('Microsoft.Compute/virtualMachines/', variables('auxVMName'), copyindex())]"
-      ],
-      "copy": {
-        "name": "auxExtCopy",
-        "count": "[parameters('auxNodeCount')]"
-      },
-      "properties": {
-        "publisher": "Microsoft.Azure.Extensions",
-        "type": "CustomScript",
-        "typeHandlerVersion": "2.0",
-        "autoUpgradeMinorVersion": true,
-        "settings": {
-          "fileUris": [
-            "[concat(variables('templateBaseUrl'), 'infradeploy.sh')]"
-          ],
-          "commandToExecute": "[concat('bash infradeploy.sh ', parameters('infraNodeCount'), ' ', parameters('adminUserName'), ' ', parameters('adminPassword'), ' ', variables('infraVMName'), ' ', variables('networkSettings').statics.infraRange.base, ' ', variables('networkSettings').statics.infraRange.start, ' ', variables('workerVMName'), ' ', parameters('workerNodeCount'), ' ', variables('networkSettings').statics.workerRange.base, ' ', variables('networkSettings').statics.workerRange.start, ' ', variables('auxVMName'), ' ', parameters('auxNodeCount'), ' ', variables('networkSettings').statics.auxRange.base, ' ', variables('networkSettings').statics.auxRange.start, ' ', variables('templateBaseUrl'), ' ', parameters('headNodeSize'), ' ', parameters('workerNodeSize'), ' ', parameters('auxNodeSize'), ' ', parameters('clusteryml'), ' ', parameters('cloudconfigYml'), ' ', parameters('clusterId')) ]"
-        }
-      }
-    }    
+    }
   ]
 }
