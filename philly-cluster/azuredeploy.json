@@ -141,7 +141,7 @@
       "type": "string",
       "defaultValue": "create_new",
       "metadata": {
-        "description": "provide an existing vnet or create a new one. worker and infra will be deployed to core subnet, hot storage to gfshot, warm to gfswarm, file transfer to fts"
+        "description": "provide an existing vnet or create a new one. worker and infra will be deployed to core subnet, shared storage to gfs, file transfer to fts"
       }
     },
     "clusterYml": {
@@ -187,7 +187,7 @@
           "vnet": "virtualnetwork"
         },
         "gfs": {
-          "name": "gfshot",
+          "name": "gfs",
           "prefix": "10.0.14.0/24",
           "vnet": "virtualnetwork"
         },
