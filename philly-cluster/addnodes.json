@@ -32,7 +32,7 @@
           "type": "string",
           "defaultValue": "pworker",
           "metadata": {
-            "description": "Prefix of node. Use gfs-vm or gfshot-vm for gluster type, please."
+            "description": "Prefix of node. Use gfs-vm for gluster type, please."
           }
       },
       "nodeSize": {
