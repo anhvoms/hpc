@@ -46,6 +46,9 @@
           "Standard_D15_v2",
           "Standard_DS5_V2",
           "Standard_DS12_v2",
+          "Standard_F16s",
+          "Standard_F8s",
+          "Standard_F4s",
           "Standard_NC6",
           "Standard_NC12",
           "Standard_NC24",
@@ -53,7 +56,8 @@
           "Standard_NC6s_v2",
           "Standard_NC12s_v2",
           "Standard_NC24s_v2",
-          "Standard_NC24rs_v2"
+          "Standard_NC24rs_v2",
+          "Standard_ND24rs"
         ],
         "metadata": {
           "description": "Size of the nodes."
@@ -206,7 +210,7 @@
       {
         "apiVersion": "2017-03-30",
         "type": "Microsoft.Compute/virtualMachines",
-        "name": "[concat(parameters('nodePrefix'), if(less(copyindex(parameters('startIndex')),10),'000',if(less(copyindex(parameters('startIndex')),100),'00','0')), copyindex(parameters('startIndex')))]",
+        "name": "[concat(parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(parameters('startIndex')),10),'-vm00','-vm0'),if(less(copyindex(parameters('startIndex')),10),'000',if(less(copyindex(parameters('startIndex')),100),'00','0'))), copyindex(parameters('startIndex')))]",
         "location": "[resourceGroup().location]",
         "dependsOn": [
           "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), if(less(copyindex(parameters('startIndex')),10),'000',if(less(copyindex(parameters('startIndex')),100),'00','0')), copyindex(parameters('startIndex')))]"
@@ -223,7 +227,7 @@
             "vmSize": "[parameters('nodeSize')]"
           },
           "osProfile": {
-            "computername": "[concat(parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(variables('secondStartIndex')),10),'00','0'),if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0'))), copyindex(parameters('startIndex')))]",
+            "computername": "[concat(parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(parameters('startIndex')),10),'-vm00','-vm0'),if(less(copyindex(parameters('startIndex')),10),'000',if(less(copyindex(parameters('startIndex')),100),'00','0'))), copyindex(parameters('startIndex')))]",
             "adminUsername": "[parameters('adminUsername')]",
             "adminPassword": "[parameters('adminPassword')]"
           },
@@ -267,10 +271,10 @@
       {
         "apiVersion": "2017-03-30",
         "type": "Microsoft.Compute/virtualMachines/extensions",
-        "name": "[concat(parameters('nodePrefix'), if(less(copyindex(parameters('startIndex')),10),'000',if(less(copyindex(parameters('startIndex')),100),'00','0')), copyindex(parameters('startIndex')), '/Installation')]",
+        "name": "[concat(parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(parameters('startIndex')),10),'-vm00','-vm0'),if(less(copyindex(parameters('startIndex')),10),'000',if(less(copyindex(parameters('startIndex')),100),'00','0'))), copyindex(parameters('startIndex')), '/Installation')]",
         "location": "[resourceGroup().location]",
         "dependsOn": [
-          "[concat('Microsoft.Compute/virtualMachines/', parameters('nodePrefix'), if(less(copyindex(parameters('startIndex')),10),'000',if(less(copyindex(parameters('startIndex')),100),'00','0')), copyindex(parameters('startIndex')))]"
+          "[concat('Microsoft.Compute/virtualMachines/', parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(parameters('startIndex')),10),'-vm00','-vm0'),if(less(copyindex(parameters('startIndex')),10),'000',if(less(copyindex(parameters('startIndex')),100),'00','0'))), copyindex(parameters('startIndex')), copyindex(parameters('startIndex')))]"
         ],
         "copy": {
           "name": "nodeExtCopy1",
@@ -317,7 +321,7 @@
         "apiVersion": "2017-03-30",
         "condition": "[equals(variables('overflow'),1)]",
         "type": "Microsoft.Compute/virtualMachines",
-        "name": "[concat(parameters('nodePrefix'), if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')), copyindex(variables('secondStartIndex')))]",
+        "name": "[concat(parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(variables('secondStartIndex')),10),'-vm00','-vm0'),if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0'))), copyindex(variables('secondStartIndex')))]",
         "location": "[resourceGroup().location]",
         "dependsOn": [
           "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')), copyindex(variables('secondStartIndex')))]"
@@ -334,7 +338,7 @@
             "vmSize": "[parameters('nodeSize')]"
           },
           "osProfile": {
-            "computername": "[concat(parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(variables('secondStartIndex')),10),'00','0'),if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0'))), copyindex(variables('secondStartIndex')))]",
+            "computername": "[concat(parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(variables('secondStartIndex')),10),'-vm00','-vm0'),if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0'))), copyindex(variables('secondStartIndex')))]",
             "adminUsername": "[parameters('adminUsername')]",
             "adminPassword": "[parameters('adminPassword')]"
           },
@@ -379,10 +383,10 @@
         "apiVersion": "2017-03-30",
         "condition": "[equals(variables('overflow'),1)]",      
         "type": "Microsoft.Compute/virtualMachines/extensions",
-        "name": "[concat(parameters('nodePrefix'), if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')),copyindex(variables('secondStartIndex')), '/Installation')]",
+        "name": "[concat(parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(variables('secondStartIndex')),10),'-vm00','-vm0'),if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0'))),copyindex(variables('secondStartIndex')), '/Installation')]",
         "location": "[resourceGroup().location]",
         "dependsOn": [
-          "[concat('Microsoft.Compute/virtualMachines/', parameters('nodePrefix'), if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0')), copyindex(variables('secondStartIndex')))]"
+          "[concat('Microsoft.Compute/virtualMachines/', parameters('nodePrefix'), if(equals(parameters('nodeType'), 'gluster'),if(less(copyindex(variables('secondStartIndex')),10),'-vm00','-vm0'),if(less(copyindex(variables('secondStartIndex')),10),'000',if(less(copyindex(variables('secondStartIndex')),100),'00','0'))), copyindex(variables('secondStartIndex')))]"
         ],
         "copy": {
           "name": "nodeExtCopy2",

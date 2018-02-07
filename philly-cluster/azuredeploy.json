@@ -174,8 +174,8 @@
     "publicIPAddressName": "publicips",
     "infraVMName": "pinfra00",
     "workerVMName": "pworker",
-    "gfsName": "gfs-vm",
-    "ftsName": "fts-vm",
+    "gfsName": "gfs",
+    "ftsName": "fts",
     "avSetName": "infraAVSet",
     "nicName": "nic-",
     "networkSettings": {
