@@ -84,6 +84,6 @@ fi
 echo "Completed the gluster setup on $(hostname)"
 
 if [[ $LOAD_BALANCER_IP != "none" ]]; then
-    applyCloudConfig LOAD_BALANCER_IP
+    applyCloudConfig $LOAD_BALANCER_IP
 fi
 exit 0
