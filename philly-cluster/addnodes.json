@@ -21,7 +21,7 @@
         "allowedValues": [
           "worker",
           "gluster",
-          "file_transfer",
+          "fileTransfer",
           "auxiliary"
         ],
         "metadata": {
@@ -172,7 +172,7 @@
       {
         "type": "Microsoft.Compute/availabilitySets",
         "condition":"[equals(parameters('avSet'),'create_new')]",
-        "name": "[variables('nodeAVSet')]",
+        "name": "[variables('nodeAVSetName')]",
         "apiVersion": "2017-03-30",
         "location": "[resourceGroup().location]",
         "sku": {
