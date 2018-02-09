@@ -20,6 +20,7 @@ ADMIN_USERNAME=$2
 WORKERNODE_SKU=$3
 PHILLY_HOME=/var/lib/philly
 
+[[ -f ./common.sh ]] || wget https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/common.sh -O ./common.sh
 source ./common.sh
 
 function updateStateMachineStatus()
