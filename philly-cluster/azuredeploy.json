@@ -782,7 +782,7 @@
             "nodeDataDiskSize":{"value": "[parameters('gfsDataDiskSize')]"},
             "OSImage":{"value": "[parameters('OSImage')]"},
             "loadBalancerIP":{"value": "[variables('networkSettings').statics.lbIP]"},
-            "avSet":{"value":"[parameters('workerAVSet')]"},
+            "avSet":{"value":"create_new"},
             "subnet":{"value": "[variables('gfsSubnetRef')]"}
         }
       }
