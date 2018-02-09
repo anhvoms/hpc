@@ -34,7 +34,7 @@ function initialSetup()
     usermod -a -G systemd-journal $ADMIN_USERNAME
     usermod -a -G docker $ADMIN_USERNAME
 
-    [[ ! -d /var/nfshare ]] && mkdir /var/nfsshare
+    [[ ! -d /var/nfsshare ]] && mkdir /var/nfsshare
     [[ ! -d /var/nfs-mount ]] && mkdir /var/nfs-mount
     [[ ! -d /var/gfs ]] && mkdir /var/gfs
 
