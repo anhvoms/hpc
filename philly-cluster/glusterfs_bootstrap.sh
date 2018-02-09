@@ -69,7 +69,7 @@ serverTypeOption='-s glusterfs'
 mountOption='-t noatime,nodiratime'
 
 #Change shipyard script to allow our vm naming pattern
-sed -i 's/vm$i/vm$(seq -f "%03g" $i $i)/g' ./shipyard_remotefs_bootstrap.sh
+sed -i 's/-vm$i/$(seq -f "%03g" $i $i)/g' ./shipyard_remotefs_bootstrap.sh
 sed -i 's/mdadm --create/mdadm --create --chunk 128/g' ./shipyard_remotefs_bootstrap.sh
 
 echo "Executing shipyard_remotefs_bootstrap.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o $serverOption $premiumOption $raidLevelOption $serverTypeOption $mountOption"
