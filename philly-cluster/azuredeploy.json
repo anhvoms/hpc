@@ -360,6 +360,42 @@
               "idleTimeoutInMinutes": 15
             },
             "Name": "ssh"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/infrapool0')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/hnnprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 50070,
+              "backendPort": 50070,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "hnn-1"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/infrapool1')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/hnnprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 50071,
+              "backendPort": 50070,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "hnn-2"
           }
         ],
         "probes": [
