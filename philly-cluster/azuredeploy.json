@@ -279,6 +279,12 @@
         "backendAddressPools": [
           {
             "name": "BackendPool1"
+          },
+          {
+            "name": "infrapool0"
+          },
+          {
+            "name": "infrapool1"
           }
         ],
         "loadBalancingRules": [
@@ -298,7 +304,26 @@
               "backendPort": 80,
               "idleTimeoutInMinutes": 15
             },
-            "Name": "httplbrule"
+            "Name": "http"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/BackendPool1')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/httpsprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 443,
+              "backendPort": 443,
+              "idleTimeoutInMinutes": 15,
+              "loadDistribution":"SourceIPProtocol"
+            },
+            "Name": "https"
           },
           {
             "properties": {
@@ -317,6 +342,24 @@
               "idleTimeoutInMinutes": 15
             },
             "Name": "etcd4001"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/BackendPool1')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/sshprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 22,
+              "backendPort": 22,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "ssh"
           }
         ],
         "probes": [
@@ -337,6 +380,51 @@
               "numberOfProbes": 2
             },
             "name": "etcd4001probe"
+          },
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 443,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "httpsprobe"
+          },
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 3389,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "rdpprobe"
+          },
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 22,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "sshprobe"
+          },
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 81,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "proxyprobe"
+          },
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 50070,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "hnnprobe"
           }
         ]
       }
