@@ -245,18 +245,6 @@ function updateResolvConf()
 }
 
 
-function setupSlurm()
-{
-    if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then  
-        slurmMasterSetup
-    else
-        if [[ $isInfra -eq 1 ]]; then
-            slurmSlaveSetup
-        fi
-    fi
-}
-
-
 function applyCloudConfigInfra()
 {
     [[ ! -d /var/lib/coreos-install ]] && mkdir -p /var/lib/coreos-install
