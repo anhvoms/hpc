@@ -1189,7 +1189,7 @@
       "name": "nestedTemplateWorker",
       "type": "Microsoft.Resources/deployments",
       "dependsOn": [
-        "nestedTemplateGfs"
+        "infraExtCopy"
       ],
       "resourceGroup": "[parameters('workerResourceGRoup')]",
       "properties": {
@@ -1223,7 +1223,7 @@
       "name": "nestedTemplateFts",
       "type": "Microsoft.Resources/deployments",
       "dependsOn": [
-        "nestedTemplateGfs"
+        "infraExtCopy"
       ],
       "resourceGroup": "[parameters('ftsResourceGRoup')]",
       "properties": {
