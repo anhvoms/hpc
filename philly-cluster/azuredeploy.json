@@ -1092,7 +1092,7 @@
           "vmSize": "[parameters('gfsNodeSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('proxyName'), copyindex())]",
+          "computername": "[variables('gangliaName')]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         },
