@@ -461,6 +461,24 @@
                 "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
               },
               "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/gangliapool')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/httpprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 82,
+              "backendPort": 80,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "ganglia"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
                 "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/proxypool')]"
               },
               "probe": {
