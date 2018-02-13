@@ -614,6 +614,25 @@
                 "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/backendAddressPools/BackendPool1')]"
               },
               "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/probes/httpprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 443,
+              "backendPort": 443,
+              "idleTimeoutInMinutes": 15,
+              "loadDistribution":"SourceIPProtocol"
+            },
+            "Name": "https"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/backendAddressPools/BackendPool1')]"
+              },
+              "probe": {
                 "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/probes/etcd4001probe')]"
               },
               "protocol": "Tcp",
@@ -658,7 +677,25 @@
               "idleTimeoutInMinutes": 15
             },
             "Name": "dns53Udp"
-          }
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/backendAddressPools/BackendPool1')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('internalLBName')), '/probes/hrmprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 8088,
+              "backendPort": 8088,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "hrm"
+          },
         ],
         "probes": [
           {
@@ -687,6 +724,15 @@
               "numberOfProbes": 2
             },
             "name": "dns53probe"
+          },
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 8088,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "hrmprobe"
           }
         ]
       }
