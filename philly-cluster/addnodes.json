@@ -240,7 +240,9 @@
             "adminPassword": "[parameters('adminPassword')]"
           },
           "storageProfile": {
-            "imageReference": "[parameters('OSImage')]",
+            "imageReference": {
+               "id": "[parameters('OSImage')]"
+             },
             "osDisk": {
               "createOption": "FromImage",
               "diskSizeGB": 1023,
@@ -349,7 +351,9 @@
             "adminPassword": "[parameters('adminPassword')]"
           },
           "storageProfile": {
-            "imageReference": "[parameters('OSImage')]",
+            "imageReference": {
+               "id": "[parameters('OSImage')]"
+            },
             "osDisk": {
               "createOption": "FromImage",
               "diskSizeGB": 1023,
