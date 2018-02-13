@@ -93,6 +93,13 @@
             "description": "E.g., an offset of 5 with IP Base 10.0.8 means the first VM will start at 10.0.8.5."
         }
       },
+      "nodeMaxIP":{
+        "type": "int",
+        "defaultValue": 239,
+        "metadata": {
+          "description": "E.g., a max IP off 239 means no worker will have the last IP octet more than 239"
+        }
+      },
       "nodeDataDiskCount": {
         "type": "int",
         "defaultValue": 1,
@@ -139,14 +146,14 @@
     "variables": {
       "nicName": "[concat('nic-',parameters('nodePrefix'))]",
       "offset":"[parameters('subnetIPOffset')]",
-      "maxNodeIP":240,
+      "upperBoundIP":"[add(parameters('nodeMaxIP'),1)]",
       "effectiveIndex": "[add(parameters('startIndex'),variables('offset'))]",
       "thirdOctet1": "[div(variables('effectiveIndex'),240)]",
       "thirdOctet2": "[add(variables('thirdOctet1'),1)]",
-      "beginIPIndex":"[mod(variables('effectiveIndex'),variables('maxNodeIP'))]",
-      "overflow": "[if(greaterOrEquals(add(variables('beginIPIndex'),parameters('nodeCount')),variables('maxNodeIP')), 1, 0)]",
+      "beginIPIndex":"[mod(variables('effectiveIndex'),variables('upperBoundIP'))]",
+      "overflow": "[if(greaterOrEquals(add(variables('beginIPIndex'),parameters('nodeCount')),variables('upperBoundIP')), 1, 0)]",
       "ipbase":"[if(equals(parameters('nodeType'),'worker'),concat('10.0.',variables('thirdOctet1')),parameters('subnetIpBase'))]",
-      "firstCount":"[if(equals(variables('overflow'),0),parameters('nodeCount'),sub(variables('maxNodeIP'),variables('beginIPIndex')))]",
+      "firstCount":"[if(equals(variables('overflow'),0),parameters('nodeCount'),sub(variables('upperBoundIP'),variables('beginIPIndex')))]",
       "secondStartIndex":"[add(parameters('startIndex'),variables('firstCount'))]",
       "secondCount":"[if(equals(variables('overflow'),0),1,sub(parameters('nodeCount'),variables('firstCount')))]",
       "commonBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/common.sh",
@@ -233,9 +240,7 @@
             "adminPassword": "[parameters('adminPassword')]"
           },
           "storageProfile": {
-            "imageReference": {
-              "id": "[parameters('OSImage')]"
-            },
+            "imageReference": "[parameters('OSImage')]",
             "osDisk": {
               "createOption": "FromImage",
               "diskSizeGB": 1023,
@@ -344,9 +349,7 @@
             "adminPassword": "[parameters('adminPassword')]"
           },
           "storageProfile": {
-            "imageReference": {
-              "id": "[parameters('OSImage')]"
-            },
+            "imageReference": "[parameters('OSImage')]",
             "osDisk": {
               "createOption": "FromImage",
               "diskSizeGB": 1023,

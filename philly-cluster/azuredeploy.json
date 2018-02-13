@@ -92,7 +92,7 @@
       "type": "string",
       "defaultValue": "GFSResourceGroup",
       "metadata": {
-          "description": "Provide RG for gluster and FTS"
+          "description": "Provide RG for gluster"
       }
     },
     "gfsNodeSize": {
@@ -114,7 +114,7 @@
       "defaultValue": 6,
       "minValue": 0,
       "metadata": {
-        "description": "Specify the number of auxiliary nodes."
+        "description": "Specify the number of gluster nodes."
       }
     },
     "gfsDataDiskCount": {
@@ -129,6 +129,35 @@
       "defaultValue": 4095,
       "metadata": {
           "description": "Size of each data disk in gluster nodes."
+      }
+    },
+    "ftsResourceGroup": {
+      "type": "string",
+      "defaultValue": "GFSResourceGroup",
+      "metadata": {
+          "description": "Provide RG for FTS"
+      }
+    },
+    "ftsNodeSize": {
+      "type": "string",
+      "defaultValue": "Standard_DS5_V2",
+      "allowedValues": [
+        "Standard_F4s",
+        "Standard_F8s",
+        "Standard_F16s",
+        "Standard_DS5_V2",
+        "Standard_DS12"
+      ],
+      "metadata": {
+        "description": "Size of the file transfer nodes."
+      }
+    },
+    "ftsNodeCount": {
+      "type": "int",
+      "defaultValue": 2,
+      "minValue": 0,
+      "metadata": {
+        "description": "Specify the number of file transfer nodes."
       }
     },
     "OSImage": {
@@ -174,6 +203,8 @@
     "publicIPAddressName": "publicips",
     "infraVMName": "pinfra00",
     "workerVMName": "pworker",
+    "proxyName":"winproxy",
+    "gangliaName":"pganglia",
     "gfsName": "gfs-vm",
     "ftsName": "fts-vm",
     "avSetName": "infraAVSet",
@@ -215,7 +246,9 @@
           "base": "10.0.1",
           "start": 240
         },
-        "lbIP": "10.0.0.4"
+        "lbIP": "10.0.0.4",
+        "gangliaMasterIP":"10.0.1.249",
+        "winproxyIPs":["10.0.1.250","10.0.1.251"]
       }
     },
     "infraCount":"[if(greater(parameters('infraNodeCount'),0),parameters('infraNodeCount'), 1)]",
@@ -228,7 +261,8 @@
     "coreSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.core.name)]",
     "gfsSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.gfs.name)]",
     "ftsSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.fts.name)]",
-    "templateBaseUrl": "https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/"
+    "templateBaseUrl": "https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/",
+    "avSetId":"[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
   },
   "resources": [
     {
@@ -285,6 +319,12 @@
           },
           {
             "name": "infrapool1"
+          },
+          {
+            "name": "proxypool"
+          },
+          {
+            "name": "gangliapool"
           }
         ],
         "loadBalancingRules": [
@@ -396,6 +436,42 @@
               "idleTimeoutInMinutes": 15
             },
             "Name": "hnn-2"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/proxypool')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/proxyprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 81,
+              "backendPort": 81,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "proxy"
+          },
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/proxypool')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/rdpprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 3389,
+              "backendPort": 3389,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "rdp"
           }
         ],
         "probes": [
@@ -810,7 +886,7 @@
       },
       "properties": {
         "availabilitySet": {
-          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
+          "id": "[variables('avSetId')]"
         },
         "hardwareProfile": {
           "vmSize": "[parameters('infraNodeSize')]"
@@ -879,6 +955,202 @@
       }
     },
     {
+      "apiVersion": "2017-06-01",
+      "type": "Microsoft.Network/networkInterfaces",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
+      "name": "[concat(variables('nicName'), variables('proxyName'), copyindex())]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('internalLBName'))]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('externalLBName'))]",
+        "Microsoft.Network/networkSecurityGroups/nsg"
+      ],
+      "copy": {
+        "name": "winproxyNetworkCopy",
+        "count": 2
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[variables('networkSettings').statics.winproxyIPs[copyIndex()]]",
+              "subnet": {
+                "id": "[variables('coreSubnetRef')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[concat(variables('externalLBID'), '/backendAddressPools/proxypool')]"
+                }
+              ]
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg')]"
+        },
+        "enableAcceleratedNetworking":true
+      }
+    },
+    {
+      "apiVersion": "2017-03-30",
+      "type": "Microsoft.Compute/virtualMachines",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
+      "name": "[concat(variables('proxyName'), copyindex())]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), variables('proxyName'), copyindex())]",
+        "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
+      ],
+      "copy": {
+        "name": "proxyVMCopy",
+        "count": 2
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[variables('avSetId')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('gfsNodeSize')]"
+        },
+        "osProfile": {
+          "computername": "[concat(variables('proxyName'), copyindex())]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2016-Datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "diskSizeGB": 1023,
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          }         
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), variables('proxyName'), copyindex()))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "2017-06-01",
+      "type": "Microsoft.Network/networkInterfaces",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
+      "name": "[concat(variables('nicName'), variables('gangliaName'))]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": ["infraExtCopy"],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[variables('networkSettings').statics.gangliaMasterIP]",
+              "subnet": {
+                "id": "[variables('coreSubnetRef')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[concat(variables('externalLBID'), '/backendAddressPools/gangliapool')]"
+                }
+              ]
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg')]"
+        },
+        "enableAcceleratedNetworking":true
+      }
+    },
+    {
+      "apiVersion": "2017-03-30",
+      "type": "Microsoft.Compute/virtualMachines",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
+      "name": "[variables('gangliaName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), variables('gangliaName'))]"
+      ],
+      "properties": {
+        "availabilitySet": {
+          "id": "[variables('avSetId')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('gfsNodeSize')]"
+        },
+        "osProfile": {
+          "computername": "[concat(variables('proxyName'), copyindex())]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('OSImage')]"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "diskSizeGB": 1023,
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          },
+          "dataDisks": [
+            {
+              "createOption": "Empty",
+              "lun": 0,
+              "diskSizeGB": 1023,
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              }
+            }
+          ]                   
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), variables('gangliaName')))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "2017-03-30",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "condition":"[greater(parameters('infraNodeCount'),0)]",
+      "name": "[concat(variables('gangliaName'), '/Installation')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[variables('gangliaName')]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "fileUris": [
+            "[concat(variables('templateBaseUrl'), 'workerdeploy.sh')]",
+            "[concat(variables('templateBaseUrl'), 'common.sh')]"
+          ],
+          "commandToExecute": "[concat('bash workerdeploy.sh ', variables('networkSettings').statics.lbIP, ' ', parameters('adminUserName'), ' ', parameters('gfsNodeSize'))]"
+        }
+      }
+    },
+    {
       "apiVersion": "2017-05-10",
       "name": "nestedTemplateGfs",
       "type": "Microsoft.Resources/deployments",
@@ -902,6 +1174,7 @@
             "startIndex":{"value": 0},
             "subnetIpBase":{"value": "[variables('networkSettings').statics.gfsRange.base]"},
             "subnetIpOffset":{"value": "[variables('networkSettings').statics.gfsRange.start]"},
+            "nodeMaxIP":{"value": "239"},
             "nodeDataDiskCount":{"value": "[parameters('gfsDataDiskCount')]"},
             "nodeDataDiskSize":{"value": "[parameters('gfsDataDiskSize')]"},
             "OSImage":{"value": "[parameters('OSImage')]"},
@@ -935,12 +1208,47 @@
             "startIndex":{"value": 0},
             "subnetIpBase":{"value": "[variables('networkSettings').statics.workerRange.base]"},
             "subnetIpOffset":{"value": "[variables('networkSettings').statics.workerRange.start]"},
+            "nodeMaxIP":{"value": "239"},
             "nodeDataDiskCount":{"value": 1},
             "nodeDataDiskSize":{"value": 1023},
             "OSImage":{"value": "[parameters('OSImage')]"},
             "loadBalancerIP":{"value": "[variables('networkSettings').statics.lbIP]"},
             "avSet":{"value":"[parameters('workerAVSet')]"},
             "subnet":{"value": "[variables('coreSubnetRef')]"}
+        }
+      }
+    },
+    {
+      "apiVersion": "2017-05-10",
+      "name": "nestedTemplateFts",
+      "type": "Microsoft.Resources/deployments",
+      "dependsOn": [
+        "nestedTemplateGfs"
+      ],
+      "resourceGroup": "[parameters('ftsResourceGRoup')]",
+      "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+              "uri":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/addnodes.json",
+              "contentVersion":"1.0.0.0"
+          },
+          "parameters": {
+            "adminUserName":{"value": "[parameters('adminUserName')]"},
+            "adminPassword":{"value": "[parameters('adminPassword')]"},
+            "nodeType":{"value":"fileTransfer"},
+            "nodePrefix":{"value": "[variables('ftsName')]"},
+            "nodeSize":{"value": "[parameters('ftsNodeSize')]"},
+            "nodeCount":{"value": "[parameters('ftsNodeCount')]"},
+            "startIndex":{"value": 0},
+            "subnetIpBase":{"value": "[variables('networkSettings').statics.ftsRange.base]"},
+            "subnetIpOffset":{"value": "[variables('networkSettings').statics.ftsRange.start]"},
+            "nodeMaxIP":{"value": "239"},
+            "nodeDataDiskCount":{"value": 1},
+            "nodeDataDiskSize":{"value": 1023},
+            "OSImage":{"value": "[parameters('OSImage')]"},
+            "loadBalancerIP":{"value": "[variables('networkSettings').statics.lbIP]"},
+            "avSet":{"value":"create_new"},
+            "subnet":{"value": "[variables('ftsSubnetRef')]"}
         }
       }
     }
