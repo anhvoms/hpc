@@ -882,7 +882,21 @@
               "priority": 106,
               "direction": "Inbound"
             }
+          },
+          {
+            "name": "RDP",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefixes":["131.107.0.0/16"],
+              "destinationPortRange": "3389",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 107,
+              "direction": "Inbound"
+            }
           }
+
         ]
       },
       "dependsOn": []
