@@ -695,7 +695,7 @@
               "idleTimeoutInMinutes": 15
             },
             "Name": "hrm"
-          },
+          }
         ],
         "probes": [
           {

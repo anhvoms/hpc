@@ -363,11 +363,11 @@
             },
             "copy": [
                 {
-                    "name": "dataDisks2",
+                    "name": "dataDisks",
                     "count": "[parameters('nodeDataDiskCount')]",
                     "input": {
-                        "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0'), '-disk', copyIndex('dataDisks2'))]",
-                        "lun": "[copyIndex('dataDisks2')]",
+                        "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0'), '-disk', copyIndex('dataDisks'))]",
+                        "lun": "[copyIndex('dataDisks')]",
                         "diskSizeGB": "[parameters('nodeDataDiskSize')]",
                         "caching": "ReadOnly",
                         "createOption": "Empty",
