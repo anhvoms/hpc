@@ -257,6 +257,11 @@ function applyCloudConfigInfra()
     fi
 
     coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
+    if [[ $isInfra -eq 1 ]];
+    then
+        sed -i "s/initial-cluster-state: existing/initial-cluster-state: new/g" $PHILLY_HOME/cloud-config.yml
+    fi
+
     if [[ -z $(id -u core 2>&1 | grep "no such user") ]]; then
         echo "core ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
         usermod -a -G systemd-journal core
