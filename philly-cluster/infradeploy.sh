@@ -235,7 +235,7 @@ function updateResolvConf()
  
         #Rewrite /etc/resolv.conf after dns is up
         azureInternalDomain=$(grep search /etc/resolv.conf | awk -F' ' '{print $2}')
-        cp /var/lib/philly/newresolv.conf /etc/resolv.conf
+        cp $PHILLY_HOME/newresolv.conf /etc/resolv.conf
         sed -i "s/search $CLUSTER.philly.selfhost.corp.microsoft.com/search $CLUSTER.philly.selfhost.corp.microsoft.com $azureInternalDomain/g" /etc/resolv.conf
     fi
 
@@ -251,9 +251,10 @@ function applyCloudConfigInfra()
 
     if [[ $isInfra -eq 1 ]];
     then
-        #Backup our /etc/resolv.conf because cloud-config will overwrite it and
+        #Backup our /etc/resolv.conf  and /etc/hosts because cloud-config will overwrite it and
         #we can't use that one yet
-        cp /etc/resolv.conf /var/lib/philly/resolv.conf
+        cp /etc/resolv.conf $PHILLY_HOME/resolv.conf
+        cp /etc/hosts $PHILLY_HOME/hosts
     fi
 
     coreos-cloudinit --from-file $PHILLY_HOME/cloud-config.yml
@@ -270,8 +271,10 @@ function applyCloudConfigInfra()
     if [[ $isInfra -eq 1 ]];
     then
            #Save the newly generated /etc/resolv.conf
-           cp /etc/resolv.conf /var/lib/philly/newresolv.conf
-           cp /var/lib/philly/resolv.conf /etc/resolv.conf
+           cp /etc/resolv.conf $PHILLY_HOME/newresolv.conf       
+           cp $PHILLY_HOME/resolv.conf /etc/resolv.conf
+           cp /etc/hosts $PHILLY_HOME/newhosts
+           cp $PHILLY_HOME/hosts /etc/hosts
     fi
 
     #Wait for fleet to be ready
