@@ -158,11 +158,11 @@
       "secondCount":"[if(equals(variables('overflow'),0),1,sub(parameters('nodeCount'),variables('firstCount')))]",
       "commonBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/common.sh",
       "workerBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/workerdeploy.sh",
-      "gfsBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/glusterfs_bootstrap.sh",
-      "gfsFSLink": "https://raw.githubusercontent.com/Azure/batch-shipyard/3.0.3/scripts/shipyard_remotefs_bootstrap.sh",
+      "gfsBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/glusterfs_bootstrap.sh",      
+      "gfsSetupLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/glusterfs_setup.sh",      
       "glusterscripts": [
         "[variables('commonBootstrapLink')]",
-        "[variables('gfsFSLink')]",
+        "[variables('gfsSetupLink')]",
         "[variables('gfsBootstrapLink')]"
       ],
       "workerscripts": [

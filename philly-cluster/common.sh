@@ -93,35 +93,35 @@ function waitForDevice() {
 function formatDatadisks()
 {
     declare -a data_disks
-	all_disks=($(lsblk -l -d -n -p -I 8,65,66,67,68 -o NAME))
-	for disk in "${all_disks[@]}"; do
-		# ignore os and ephemeral disks
-		if [ $disk != "/dev/sda" ] && [ $disk != "/dev/sdb" ]; then
-			data_disks=("${data_disks[@]}" "$disk")
-		fi
-	done
-	unset all_disks
-	numdisks=${#data_disks[@]}
-	echo "found $numdisks data disks: ${data_disks[@]}"
+    all_disks=($(lsblk -l -d -n -p -I 8,65,66,67,68 -o NAME))
+    for disk in "${all_disks[@]}"; do
+    # ignore os and ephemeral disks
+    if [ $disk != "/dev/sda" ] && [ $disk != "/dev/sdb" ]; then
+        data_disks=("${data_disks[@]}" "$disk")
+    fi
+    done
+    unset all_disks
+    numdisks=${#data_disks[@]}
+    echo "found $numdisks data disks: ${data_disks[@]}"
 
-	# check if data disks are already partitioned
-	declare -a skipped_part
-	for disk in "${data_disks[@]}"; do
-		part1=$(partprobe -d -s $disk | cut -d' ' -f4)
-		if [ -z $part1 ]; then
-			echo "$disk: partition 1 not found. Partitioning $disk."
-			parted -a opt -s $disk mklabel gpt mkpart primary 0% 100%
-			part1=$(partprobe -d -s $disk | cut -d' ' -f4)
-			if [ -z $part1 ]; then
-				echo "$disk: partition 1 not found after partitioning."
-				exit 1
-			fi
-			# wait for block device
-			waitForDevice $disk$part1
-		else
-			echo "$disk: partition 1 found. Skipping partitioning."
-			skipped_part=("${skipped_part[@]}" "$disk")
-		fi
+    # check if data disks are already partitioned
+    declare -a skipped_part
+    for disk in "${data_disks[@]}"; do
+    part1=$(partprobe -d -s $disk | cut -d' ' -f4)
+    if [ -z $part1 ]; then
+        echo "$disk: partition 1 not found. Partitioning $disk."
+        parted -a opt -s $disk mklabel gpt mkpart primary 0% 100%
+        part1=$(partprobe -d -s $disk | cut -d' ' -f4)
+        if [ -z $part1 ]; then
+        echo "$disk: partition 1 not found after partitioning."
+        exit 1
+        fi
+        # wait for block device
+        waitForDevice $disk$part1
+    else
+        echo "$disk: partition 1 found. Skipping partitioning."
+        skipped_part=("${skipped_part[@]}" "$disk")
+    fi
         mkfs -t ext4 $disk$part1
-	done
+    done
 }

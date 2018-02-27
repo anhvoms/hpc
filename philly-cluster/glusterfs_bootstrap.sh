@@ -39,9 +39,9 @@ for (( i=$offset; i<$((nodecount+offset)); i++ )); do
 done
 
 # Construct bootstrap command that downloaded from
-# https://raw.githubusercontent.com/Azure/batch-shipyard/master/scripts/shipyard_remotefs_bootstrap.sh
+# glusterfs_setup.sh
 # Usage:
-#   shipyard_remotefs_bootstrap.sh parameters
+#   glusterfs_setup.sh parameters
 # Parameters:
 #   -a attach mode
 #   -b rebalance filesystem on resize
@@ -68,16 +68,12 @@ raidLevelOption='-r 0'
 serverTypeOption='-s glusterfs'
 mountOption='-t noatime,nodiratime'
 
-#Change shipyard script to allow our vm naming pattern
-sed -i 's/-vm$i/$(seq -f "%03g" $i $i)/g' ./shipyard_remotefs_bootstrap.sh
-sed -i 's/mdadm --create/mdadm --create --chunk 128/g' ./shipyard_remotefs_bootstrap.sh
-
-echo "Executing shipyard_remotefs_bootstrap.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o $serverOption $premiumOption $raidLevelOption $serverTypeOption $mountOption"
-./shipyard_remotefs_bootstrap.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o "$serverOption" $premiumOption $raidLevelOption $serverTypeOption $mountOption
+echo "Executing glusterfs_setup.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o $serverOption $premiumOption $raidLevelOption $serverTypeOption $mountOption"
+./glusterfs_setup.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o "$serverOption" $premiumOption $raidLevelOption $serverTypeOption $mountOption
 exitCode=$?
 
 if [ $exitCode -ne 0 ]; then
-    echo "##ERROR failed to run shipyard_remotefs_bootstrap.sh with exit code: $exitCode"
+    echo "##ERROR failed to run glusterfs_setup.sh with exit code: $exitCode"
     exit $exitCode
 fi
 
