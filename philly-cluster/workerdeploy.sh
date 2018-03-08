@@ -48,6 +48,14 @@ function enableRDMA()
     fi
 }
 
+function disableAutoUpgrade()
+{
+    cat << EOF > /etc/apt/apt.conf.d/51disable-unattended-upgrades
+APT::Periodic::Update-Package-Lists "0";
+APT::Periodic::Unattended-Upgrade "0";
+EOF
+}
+
 initialSetup $ADMIN_USERNAME $PHILLY_HOME
 formatDatadisks
 applyCloudConfig $LOAD_BALANCER_IP
@@ -55,3 +63,4 @@ applyCloudConfig $LOAD_BALANCER_IP
 sleep 20
 updateStateMachineStatus
 enableRDMA
+disableAutoUpgrade
