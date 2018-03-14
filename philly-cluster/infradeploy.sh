@@ -304,7 +304,7 @@ function startCoreServices()
 
         etcdctl mkdir /eventqueue
 
-        for service in docker-registry master dns
+        for service in master dns
         do
             startServiceWaitForRunning $service
             sleep 30
@@ -321,96 +321,7 @@ function startCoreServices()
     #/etc/init.d/docker restart
 }
 
-
-function startHadoopServices()
-{
-    if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
-
-        #zookeeper sometimes takes a while to finish leader election
-        startServiceWaitForRunning zookeeper
-        sleep 120
-
-        for service in hadoop-journal-node hadoop-name-node hadoop-data-node hadoop-resource-manager
-        do
-            startServiceWaitForRunning $service
-        done
-    fi
-
-    m=$(seq -f "%04g" $masterIndex $masterIndex)
-    if [ "$NAME" == "$WORKER_BASE_NAME$m" ] ; then
-        #
-        # workers are part of hadoop data node set, first worker should create the hdfs directory that is needed
-        # for alertserver
-        #
-        while [[ -n $(fleetctl list-units --fields unit,sub | grep hadoop-data-node | grep -E 'dead|start-pre|auto-restart') ]];
-        do
-            sleep 5
-        done
-        ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-1:8020/sys/runtimes 2>&1)
-        if [[ -n "$ret" ]]; then
-            ret=$(/opt/bin/hdfs mkdir -p hdfs://hnn-2:8020/sys/runtimes 2>&1)
-        fi
-    fi
-}
-
-
-function startOtherServices()
-{
-    if [ "$NAME" == "$INFRA_BASE_NAME$masterIndex" ] ; then
-        etcdctl mkdir stateMachine
-        etcdctl mkdir resources/gpu
-        etcdctl mkdir resources/port
-        etcdctl mkdir resources/portRangeStart
-        etcdctl mkdir viz/requests
-        etcdctl mkdir viz/contracts
-        etcdctl mkdir jobs/pnrsy
-
-        i=0
-        while [ $i -lt $INFRA_COUNT ]
-        do
-            nextip=$((i + INFRA_IP_START))
-            etcdctl mkdir stateMachine/$INFRA_BASE_NAME$i
-            etcdctl mk stateMachine/$INFRA_BASE_NAME$i/currentState "UP/ok"
-            etcdctl mk stateMachine/$INFRA_BASE_NAME$i/goalState UP
-
-            etcdctl mkdir resources/gpu/$INFRA_IP_BASE$nextip
-            etcdctl mkdir resources/port/$INFRA_IP_BASE$nextip
-            etcdctl mkdir resources/portRangeStart/$INFRA_IP_BASE$nextip
-            ((++i))
-        done
-
-        i=0
-        while [ $i -lt $GFS_COUNT ]
-        do
-            nextip=$((i + GFS_IP_START))
-            etcdctl mkdir stateMachine/$GFS_BASE_NAME$i
-            etcdctl mk stateMachine/$GFS_BASE_NAME$i/currentState UP
-            etcdctl mk stateMachine/$GFS_BASE_NAME$i/goalState UP
-
-            etcdctl mkdir resources/gpu/$GFS_IP_BASE$nextip
-            etcdctl mkdir resources/port/$GFS_IP_BASE$nextip
-            etcdctl mkdir resources/portRangeStart/$GFS_IP_BASE$nextip
-            ((++i))
-        done
-
-        i=0
-        while [ $i -lt $WORKER_COUNT ]
-        do
-            nextip=$((i + INFRA_IP_START))
-            j=$(seq -f "%04g" $i $i)
-            etcdctl mkdir stateMachine/$WORKER_BASE_NAME$j
-            etcdctl mk stateMachine/$WORKER_BASE_NAME$j/currentState UP
-            etcdctl mk stateMachine/$WORKER_BASE_NAME$j/goalState UP
-
-            etcdctl mkdir resources/gpu/$WORKER_IP_BASE$nextip
-            etcdctl mkdir resources/port/$WORKER_IP_BASE$nextip
-            etcdctl mkdir resources/portRangeStart/$WORKER_IP_BASE$nextip
-            ((++i))
-        done
-        startService ganglia-client
-    fi
-}
-
+#
 # Main script body
 #
 source ./common.sh
@@ -425,6 +336,4 @@ updateConfigFile
 applyCloudConfigInfra
 startCoreServices
 
-#startHadoopServices
-#startOtherServices
 exit 0
