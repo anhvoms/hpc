@@ -37,6 +37,7 @@ function initialSetup()
     [[ ! -d /var/nfsshare ]] && mkdir /var/nfsshare
     [[ ! -d /var/nfs-mount ]] && mkdir /var/nfs-mount
     [[ ! -d /var/gfs ]] && mkdir /var/gfs
+    [[ ! -d /var/blob ]] && mkdir /var/blob
 
     [[ ! -f /usr/bin/mount ]] && ln -s /bin/mount /usr/bin/mount
     [[ ! -f /usr/sbin/sysctl ]] && ln -s /sbin/sysctl /usr/sbin/sysctl
