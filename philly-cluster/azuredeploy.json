@@ -73,6 +73,7 @@
         "Standard_NC12s_v2",
         "Standard_NC24s_v2",
         "Standard_NC24rs_v2",
+        "Standard_NC24rs_v3",
         "Standard_ND24rs"
       ],
       "metadata": {
@@ -160,6 +161,28 @@
         "description": "Specify the number of file transfer nodes."
       }
     },
+    "proxyNodeSize": {
+      "type": "string",
+      "defaultValue": "Standard_DS5_V2",
+      "allowedValues": [
+        "Standard_F4s",
+        "Standard_F8s",
+        "Standard_F16s",
+        "Standard_DS5_V2",
+        "Standard_DS12"
+      ],
+      "metadata": {
+        "description": "Size of the reverse proxy nodes."
+      }
+    },
+    "proxyNodeCount": {
+      "type": "int",
+      "defaultValue": 2,
+      "minValue": 0,
+      "metadata": {
+        "description": "Specify the number of reverse proxy nodes."
+      }
+    },
     "OSImage": {
       "type": "string",
       "defaultValue": "provide_your_image_id_string",
@@ -203,10 +226,10 @@
     "publicIPAddressName": "publicips",
     "infraVMName": "pinfra00",
     "workerVMName": "pworker",
-    "proxyName":"winproxy",
     "gangliaName":"pganglia",
     "gfsName": "gfs-vm",
     "ftsName": "fts-vm",
+    "proxyName": "proxy-vm",
     "avSetName": "infraAVSet",
     "nicName": "nic-",
     "networkSettings": {
@@ -223,6 +246,11 @@
           "prefix": "10.0.13.0/24",
           "vnet": "virtualnetwork"
         },
+        "proxy": {
+          "name": "proxy
+          "prefix": "10.0.14.0/24",
+          "vnet": "virtualnetwork"         
+        }
         "fts": {
           "name": "fts",
           "prefix": "10.0.15.0/24",
@@ -238,6 +266,10 @@
           "base": "10.0.13",
           "start": 4
         },
+        "proxyRange": {
+          "base": "10.0.14",
+          "start": 4
+        },
         "ftsRange": {
           "base": "10.0.15",
           "start": 4
@@ -247,8 +279,7 @@
           "start": 240
         },
         "lbIP": "10.0.0.4",
-        "gangliaMasterIP":"10.0.1.249",
-        "winproxyIPs":["10.0.1.250","10.0.1.251"]
+        "gangliaMasterIP":"10.0.1.249"
       }
     },
     "infraCount":"[if(greater(parameters('infraNodeCount'),0),parameters('infraNodeCount'), 1)]",
@@ -260,6 +291,7 @@
     "vnetID": "[if(equals(parameters('virtualnetworkID'),'create_new'),resourceId('Microsoft.Network/virtualNetworks',variables('networkSettings').virtualNetworkName),parameters('virtualnetworkID'))]",
     "coreSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.core.name)]",
     "gfsSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.gfs.name)]",
+    "proxySubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.proxy.name)]",
     "ftsSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('networkSettings').subnet.fts.name)]",
     "templateBaseUrl": "https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/",
     "avSetId":"[resourceId('Microsoft.Compute/availabilitySets', variables('avSetName'))]"
@@ -1036,96 +1068,6 @@
       "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/networkInterfaces",
       "condition":"[greater(parameters('infraNodeCount'),0)]",
-      "name": "[concat(variables('nicName'), variables('proxyName'), copyindex())]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Network/virtualNetworks/', variables('networkSettings').virtualNetworkName)]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('internalLBName'))]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('externalLBName'))]",
-        "Microsoft.Network/networkSecurityGroups/nsg"
-      ],
-      "copy": {
-        "name": "winproxyNetworkCopy",
-        "count": 2
-      },
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "privateIPAllocationMethod": "Static",
-              "privateIPAddress": "[variables('networkSettings').statics.winproxyIPs[copyIndex()]]",
-              "subnet": {
-                "id": "[variables('coreSubnetRef')]"
-              },
-              "loadBalancerBackendAddressPools": [
-                {
-                  "id": "[concat(variables('externalLBID'), '/backendAddressPools/proxypool')]"
-                }
-              ]
-            }
-          }
-        ],
-        "networkSecurityGroup": {
-          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg')]"
-        },
-        "enableAcceleratedNetworking":true
-      }
-    },
-    {
-      "apiVersion": "2017-03-30",
-      "type": "Microsoft.Compute/virtualMachines",
-      "condition":"[greater(parameters('infraNodeCount'),0)]",
-      "name": "[concat(variables('proxyName'), copyindex())]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), variables('proxyName'), copyindex())]",
-        "[concat('Microsoft.Compute/availabilitySets/', variables('avSetName'))]"
-      ],
-      "copy": {
-        "name": "proxyVMCopy",
-        "count": 2
-      },
-      "properties": {
-        "availabilitySet": {
-          "id": "[variables('avSetId')]"
-        },
-        "hardwareProfile": {
-          "vmSize": "[parameters('gfsNodeSize')]"
-        },
-        "osProfile": {
-          "computername": "[concat(variables('proxyName'), copyindex())]",
-          "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "MicrosoftWindowsServer",
-            "offer": "WindowsServer",
-            "sku": "2016-Datacenter",
-            "version": "latest"
-          },
-          "osDisk": {
-            "createOption": "FromImage",
-            "diskSizeGB": 1023,
-            "managedDisk": {
-              "storageAccountType": "Premium_LRS"
-            }
-          }         
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), variables('proxyName'), copyindex()))]"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "apiVersion": "2017-06-01",
-      "type": "Microsoft.Network/networkInterfaces",
-      "condition":"[greater(parameters('infraNodeCount'),0)]",
       "name": "[concat(variables('nicName'), variables('gangliaName'))]",
       "location": "[resourceGroup().location]",
       "dependsOn": ["infraExtCopy"],
@@ -1329,6 +1271,39 @@
             "subnet":{"value": "[variables('ftsSubnetRef')]"}
         }
       }
-    }
+    },
+    {
+      "apiVersion": "2017-05-10",
+      "name": "nestedTemplateProxy
+      "type": "Microsoft.Resources/deployments",
+      "dependsOn": [
+        "infraExtCopy"
+      ],
+      "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+              "uri":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/addnodes.json",
+              "contentVersion":"1.0.0.0"
+          },
+          "parameters": {
+            "adminUserName":{"value": "[parameters('adminUserName')]"},
+            "adminPassword":{"value": "[parameters('adminPassword')]"},
+            "nodeType":{"value":"fileTransfer"},
+            "nodePrefix":{"value": "[variables('proxyName')]"},
+            "nodeSize":{"value": "[parameters('proxyNodeSize')]"},
+            "nodeCount":{"value": "[parameters('proxyNodeCount')]"},
+            "startIndex":{"value": 0},
+            "subnetIpBase":{"value": "[variables('networkSettings').statics.proxyRange.base]"},
+            "subnetIpOffset":{"value": "[variables('networkSettings').statics.proxyRange.start]"},
+            "nodeMaxIP":{"value": 239},
+            "nodeDataDiskCount":{"value": 1},
+            "nodeDataDiskSize":{"value": 1023},
+            "OSImage":{"value": "[parameters('OSImage')]"},
+            "loadBalancerIP":{"value": "[variables('networkSettings').statics.lbIP]"},
+            "avSet":{"value":"create_new"},
+            "subnet":{"value": "[variables('proxySubnetRef')]"}
+        }
+      }
+    }    
   ]
 }

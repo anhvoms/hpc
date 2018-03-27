@@ -22,6 +22,7 @@
           "worker",
           "gluster",
           "fileTransfer",
+          "proxy",
           "auxiliary"
         ],
         "metadata": {
@@ -57,6 +58,7 @@
           "Standard_NC12s_v2",
           "Standard_NC24s_v2",
           "Standard_NC24rs_v2",
+          "Standard_NC24rs_v3",
           "Standard_ND24rs"
         ],
         "metadata": {
@@ -158,8 +160,8 @@
       "secondCount":"[if(equals(variables('overflow'),0),1,sub(parameters('nodeCount'),variables('firstCount')))]",
       "commonBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/common.sh",
       "workerBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/workerdeploy.sh",
-      "gfsBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/glusterfs_bootstrap.sh",      
-      "gfsSetupLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/glusterfs_setup.sh",      
+      "gfsBootstrapLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/glusterfs_bootstrap.sh",
+      "gfsSetupLink":"https://raw.githubusercontent.com/anhvoms/hpc/master/philly-cluster/glusterfs_setup.sh",
       "glusterscripts": [
         "[variables('commonBootstrapLink')]",
         "[variables('gfsSetupLink')]",
@@ -251,21 +253,21 @@
               }
             },
             "copy": [
-                {
-                    "name": "dataDisks",
-                    "count": "[parameters('nodeDataDiskCount')]",
-                    "input": {
-                        "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'), '-disk', copyIndex('dataDisks'))]",
-                        "lun": "[copyIndex('dataDisks')]",
-                        "diskSizeGB": "[parameters('nodeDataDiskSize')]",
-                        "caching": "ReadOnly",
-                        "createOption": "Empty",
-                        "managedDisk": {
-                            "storageAccountType": "Premium_LRS"
-                          }
-                    }
+              {
+                "name": "dataDisks",
+                "count": "[parameters('nodeDataDiskCount')]",
+                "input": {
+                  "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'), '-disk', copyIndex('dataDisks'))]",
+                  "lun": "[copyIndex('dataDisks')]",
+                  "diskSizeGB": "[parameters('nodeDataDiskSize')]",
+                  "caching": "ReadOnly",
+                  "createOption": "Empty",
+                  "managedDisk": {
+                    "storageAccountType": "Premium_LRS"
+                  }
                 }
-            ]                 
+              }
+            ]
           },
           "networkProfile": {
             "networkInterfaces": [
@@ -362,21 +364,21 @@
               }
             },
             "copy": [
-                {
-                    "name": "dataDisks",
-                    "count": "[parameters('nodeDataDiskCount')]",
-                    "input": {
-                        "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0'), '-disk', copyIndex('dataDisks'))]",
-                        "lun": "[copyIndex('dataDisks')]",
-                        "diskSizeGB": "[parameters('nodeDataDiskSize')]",
-                        "caching": "ReadOnly",
-                        "createOption": "Empty",
-                        "managedDisk": {
-                            "storageAccountType": "Premium_LRS"
-                          }
-                    }
+              {
+                "name": "dataDisks",
+                "count": "[parameters('nodeDataDiskCount')]",
+                "input": {
+                  "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0'), '-disk', copyIndex('dataDisks'))]",
+                  "lun": "[copyIndex('dataDisks')]",
+                  "diskSizeGB": "[parameters('nodeDataDiskSize')]",
+                  "caching": "ReadOnly",
+                  "createOption": "Empty",
+                  "managedDisk": {
+                    "storageAccountType": "Premium_LRS"
+                  }
                 }
-            ]                      
+              }
+            ]
           },
           "networkProfile": {
             "networkInterfaces": [
@@ -389,7 +391,7 @@
       },
       {
         "apiVersion": "2017-03-30",
-        "condition": "[equals(variables('overflow'),1)]",      
+        "condition": "[equals(variables('overflow'),1)]",
         "type": "Microsoft.Compute/virtualMachines/extensions",
         "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0'), '/Installation')]",
         "location": "[resourceGroup().location]",
@@ -413,4 +415,3 @@
       }
     ]
   }
-  
