@@ -2,7 +2,7 @@
 # This script is to install and config software for GlusterFS Linux node
 
 if [ $# -lt 6 ]; then
-    echo usage: $0 [load_balancer_ip] [admin_username] [node_prefix] [ip_base] [offset] [node_count] 
+    echo usage: $0 [load_balancer_ip] [admin_username] [node_prefix] [ip_base] [offset] [node_count] [incremental]
     echo ""
     echo "- [load_balancer_ip] IP address of internal load balancer"
     echo "- [admin_username] admin username"
@@ -10,6 +10,7 @@ if [ $# -lt 6 ]; then
     echo "- [ip_base] IP address base for GlusterFS nodes. E.g. 10.1.1"
     echo "- [offset] ip address offset"
     echo "- [node_count] number of GlusterFS nodes"
+    echo "- [incremental] whether these nodes are meant to be added to existing glusterfs nodes"
     echo ""
     exit 1
 fi
@@ -31,6 +32,13 @@ hostprefix=$3
 ipbase=$4
 offset=$5
 nodecount=$6
+brickOnlyOption=
+
+if [ ! -z $7 ] && [ $7 -eq 1 ]
+then
+    brickOnlyOption="-l"
+fi
+
 #vnetAddressSpace=${ipbase%?}*.*
 private_ips=()
 # Create static private IPs that follow Azure numbering scheme with specified offset
@@ -49,6 +57,7 @@ done
 #   -d [hostname/dns label prefix] hostname prefix
 #   -f [filesystem] filesystem
 #   -i [peer IPs] peer IPs
+#   -l [layout brick only]
 #   -m [mountpoint] mountpoint
 #   -n Tune TCP parameters
 #   -o [server options] server options
@@ -68,8 +77,8 @@ raidLevelOption='-r 0'
 serverTypeOption='-s glusterfs'
 mountOption='-t noatime,nodiratime'
 
-echo "Executing glusterfs_setup.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o $serverOption $premiumOption $raidLevelOption $serverTypeOption $mountOption"
-./glusterfs_setup.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o "$serverOption" $premiumOption $raidLevelOption $serverTypeOption $mountOption
+echo "Executing glusterfs_setup.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o $serverOption $premiumOption $raidLevelOption $serverTypeOption $mountOption $brickOnlyOption"
+./glusterfs_setup.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o "$serverOption" $premiumOption $raidLevelOption $serverTypeOption $mountOption $brickOnlyOption
 exitCode=$?
 
 if [ $exitCode -ne 0 ]; then
