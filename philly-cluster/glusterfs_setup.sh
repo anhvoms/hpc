@@ -761,8 +761,13 @@ if [ $raid_resized -eq 1 ]; then
     unset saved_mp
 fi
 
+if [ $brick_only -eq 0 ]; then
+    flush_glusterfs_firewall_rules
+    exit 0
+fi
+
 # set up server_type software
-if [ $brick_only -eq 0 ] && [ $attach_disks -eq 0 ]; then
+if [ $attach_disks -eq 0 ]; then
     if [ $server_type == "nfs" ]; then
         setup_nfs
     elif [ $server_type == "glusterfs" ]; then
