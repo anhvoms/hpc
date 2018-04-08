@@ -352,7 +352,7 @@
               "id": "[concat(variables('ftslb'), '/backendAddressPools/ftspool')]"
             }
           ],
-          "enableAcceleratedNetworking":true
+          "enableAcceleratedNetworking":"[if(equals(parameters('nodeType'),'worker'),false,true)]"
         }
       },
       {
@@ -378,7 +378,7 @@
               }
             }
           ],
-          "enableAcceleratedNetworking":true
+          "enableAcceleratedNetworking":"[if(equals(parameters('nodeType'),'worker'),false,true)]"
         }
       },
       {
@@ -489,7 +489,7 @@
               }
             }
           ],
-          "enableAcceleratedNetworking":true
+          "enableAcceleratedNetworking":"[if(equals(parameters('nodeType'),'worker'),false,true)]"
         }
       },
       {
