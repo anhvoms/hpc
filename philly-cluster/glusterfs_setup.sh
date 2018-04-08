@@ -761,7 +761,7 @@ if [ $raid_resized -eq 1 ]; then
     unset saved_mp
 fi
 
-if [ $brick_only -eq 0 ]; then
+if [ $brick_only -eq 1 ]; then
     flush_glusterfs_firewall_rules
     exit 0
 fi
