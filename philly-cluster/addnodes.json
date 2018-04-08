@@ -343,13 +343,13 @@
                 "privateIPAddress": "[concat(variables('ipbase'), '.', copyindex(variables('beginIPIndex')))]",
                 "subnet": {
                   "id": "[parameters('subnet')]"
-                }
+                },
+                "loadBalancerBackendAddressPools": [
+                  {
+                    "id": "[concat(variables('ftslb'), '/backendAddressPools/ftspool')]"
+                  }
+                ]
               }
-            }
-          ],
-          "loadBalancerBackendAddressPools": [
-            {
-              "id": "[concat(variables('ftslb'), '/backendAddressPools/ftspool')]"
             }
           ],
           "enableAcceleratedNetworking":"[bool(if(equals(parameters('nodeType'),'worker'),'false','true'))]"
