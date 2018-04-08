@@ -151,7 +151,7 @@
       "publicIPAddressName": "publicips",
       "externalLBIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses','publicIPExternalLB')]",
       "externalLBName":"ftsExternalLoadBalancer",
-      "ftslb":"[if(equals(parameters('externalFTSLB'),'create_new'),resourceId('Microsoft.Compute/loadBalancers', variables('externalLBName')),parameters('externalFTSLB'))]",
+      "ftslb":"[if(equals(parameters('externalFTSLB'),'create_new'),resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')),parameters('externalFTSLB'))]",
       "nicName": "[concat('nic-',parameters('nodePrefix'))]",
       "offset":"[parameters('subnetIPOffset')]",
       "upperBoundIP":"[add(parameters('nodeMaxIP'),1)]",
