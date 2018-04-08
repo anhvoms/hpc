@@ -40,23 +40,10 @@
         "type": "string",
         "defaultValue": "Standard_NC24rs_v2",
         "allowedValues": [
-          "Standard_D12",
-          "Standard_D12_v2",
-          "Standard_D13_v2",
-          "Standard_D14_v2",
-          "Standard_D15_v2",
           "Standard_DS5_V2",
           "Standard_DS12_v2",
           "Standard_F16s",
-          "Standard_F8s",
-          "Standard_F4s",
-          "Standard_NC6",
-          "Standard_NC12",
-          "Standard_NC24",
-          "Standard_NC24r",
           "Standard_NC6s_v2",
-          "Standard_NC12s_v2",
-          "Standard_NC24s_v2",
           "Standard_NC24rs_v2",
           "Standard_NC24rs_v3",
           "Standard_ND24rs"
@@ -143,9 +130,28 @@
         "metadata": {
           "description": "Provide an existing resource id for a subnet."
           }
+      },
+      "incremental": {
+        "type": "int",
+        "defaultValue": 0,
+        "metadata": {
+          "description": "If adding existing nodes for fileTransfers and gluster, set to 1. For fts provide fts lb below"
+          }
+      },
+      "externalFTSLB":{
+        "type": "string",
+        "defaultValue": "create_new",
+        "metadata": {
+          "description": "Provide the existing resource id for the FTS LB."
+        }
       }
     },
     "variables": {
+      "publicIPAddressType": "Dynamic",
+      "publicIPAddressName": "publicips",
+      "externalLBIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses','publicIPExternalLB')]",
+      "externalLBName":"ftsExternalLoadBalancer",
+      "ftslb":"[if(equals(parameters('externalFTSLB'),'create_new'),resourceId('Microsoft.Compute/loadBalancers', variables('externalLBName')),parameters('externalFTSLB'))]",
       "nicName": "[concat('nic-',parameters('nodePrefix'))]",
       "offset":"[parameters('subnetIPOffset')]",
       "upperBoundIP":"[add(parameters('nodeMaxIP'),1)]",
@@ -172,7 +178,7 @@
         "[variables('workerBootstrapLink')]"
       ],
       "workerCmd": "[concat('bash workerdeploy.sh ', parameters('loadBalancerIP'), ' ', parameters('adminUserName'), ' ', parameters('nodeSize'))]",
-      "glusterCmd": "[concat('./glusterfs_bootstrap.sh ', parameters('loadBalancerIP'), ' ', parameters('adminUserName'), ' ', parameters('nodePrefix'), ' ',  parameters('subnetIpBase'), ' ', variables('offset'), ' ', parameters('nodeCount'))]",
+      "glusterCmd": "[concat('./glusterfs_bootstrap.sh ', parameters('loadBalancerIP'), ' ', parameters('adminUserName'), ' ', parameters('nodePrefix'), ' ',  parameters('subnetIpBase'), ' ', variables('offset'), ' ', parameters('nodeCount'), ' ', parameters('incremental'))]",
       "nodeAVSetName":"[concat(parameters('nodeType'), 'AvSet')]",
       "nodeAvSet":"[if(equals(parameters('avSet'),'create_new'),resourceId('Microsoft.Compute/availabilitySets', variables('nodeAVSetName')),parameters('avSet'))]",
       "paddedLength":"[if(equals(parameters('nodeType'), 'worker'),4,3)]"
@@ -180,7 +186,7 @@
     "resources": [
       {
         "type": "Microsoft.Compute/availabilitySets",
-        "condition":"[equals(parameters('avSet'),'create_new')]",
+        "condition":"[and(equals(parameters('incremental'),0),equals(parameters('avSet'),'create_new'))]",
         "name": "[variables('nodeAVSetName')]",
         "apiVersion": "2017-03-30",
         "location": "[resourceGroup().location]",
@@ -194,11 +200,169 @@
       },
       {
         "apiVersion": "2017-06-01",
+        "condition":"[and(equals(parameters('nodeType'),'fileTransfer'),equals(parameters('incremental'),0))]",
+        "type": "Microsoft.Network/publicIPAddresses",
+        "name": "publicIPExternalLB",
+        "location": "[resourceGroup().location]",
+        "properties": {
+          "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+        }
+      },
+      {
+        "apiVersion": "2017-10-01",
+        "condition":"[and(equals(parameters('nodeType'),'fileTransfer'),equals(parameters('incremental'),0))]",
+        "type": "Microsoft.Network/loadBalancers",
+        "name": "[variables('externalLBName')]",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+          "[variables('externalLBIPAddressID')]"
+        ],
+        "properties": {
+          "frontendIPConfigurations": [
+            {
+              "name": "LoadBalancerFrontEnd",
+              "properties": {
+                "publicIPAddress": {
+                  "id": "[variables('externalLBIPAddressID')]"
+                }
+              }
+            }
+          ],
+          "backendAddressPools": [
+            {
+              "name": "ftspool"
+            }
+          ],
+          "loadBalancingRules": [
+            {
+              "properties": {
+                "frontendIPConfiguration": {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+                },
+                "backendAddressPool": {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/ftspool')]"
+                },
+                "probe": {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/httpsprobe')]"
+                },
+                "protocol": "Tcp",
+                "frontendPort": 443,
+                "backendPort": 443,
+                "idleTimeoutInMinutes": 15,
+                "loadDistribution":"SourceIPProtocol"
+              },
+              "Name": "https"
+            },
+            {
+              "properties": {
+                "frontendIPConfiguration": {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+                },
+                "backendAddressPool": {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/ftspool')]"
+                },
+                "probe": {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/sshprobe')]"
+                },
+                "protocol": "Tcp",
+                "frontendPort": 22,
+                "backendPort": 22,
+                "idleTimeoutInMinutes": 15
+              },
+              "Name": "ssh"
+            },
+            {
+              "properties": {
+                "frontendIPConfiguration": {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+                },
+                "backendAddressPool": {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/backendAddressPools/ftspool')]"
+                },
+                "probe": {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('externalLBName')), '/probes/sshproxyprobe')]"
+                },
+                "protocol": "Tcp",
+                "frontendPort": 2200,
+                "backendPort": 2200,
+                "idleTimeoutInMinutes": 15
+              },
+              "Name": "sshproxy"
+            }
+          ],
+          "probes": [
+            {
+              "properties": {
+                "protocol": "Tcp",
+                "port": 443,
+                "intervalInSeconds": 15,
+                "numberOfProbes": 2
+              },
+              "name": "httpsprobe"
+            },
+            {
+              "properties": {
+                "protocol": "Tcp",
+                "port": 22,
+                "intervalInSeconds": 15,
+                "numberOfProbes": 2
+              },
+              "name": "sshprobe"
+            },
+            {
+              "properties": {
+                "protocol": "Tcp",
+                "port": 2200,
+                "intervalInSeconds": 15,
+                "numberOfProbes": 2
+              },
+              "name": "sshproxyprobe"
+            }
+          ]
+        }
+      },
+      {
+        "apiVersion": "2017-06-01",
+        "condition":"[equals(parameters('nodeType'),'fileTransfer')]",
+        "type": "Microsoft.Network/networkInterfaces",
+        "name": "[if(equals(parameters('nodeType'),'fileTransfer'), concat(variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')), concat(variables('nicName'), '-', padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')))]",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+          "[variables('externalLBName')]"
+        ],
+        "copy": {
+          "name": "nodeNicCopy1",
+          "count": "[variables('firstCount')]"
+        },
+        "properties": {
+          "ipConfigurations": [
+            {
+              "name": "ipconfig1",
+              "properties": {
+                "privateIPAllocationMethod": "Static",
+                "privateIPAddress": "[concat(variables('ipbase'), '.', copyindex(variables('beginIPIndex')))]",
+                "subnet": {
+                  "id": "[parameters('subnet')]"
+                }
+              }
+            }
+          ],
+          "loadBalancerBackendAddressPools": [
+            {
+              "id": "[concat(variables('ftslb'), '/backendAddressPools/ftspool')]"
+            }
+          ],
+          "enableAcceleratedNetworking":true
+        }
+      },
+      {
+        "apiVersion": "2017-06-01",
+        "condition":"[not(equals(parameters('nodeType'),'fileTransfer'))]",
         "type": "Microsoft.Network/networkInterfaces",
         "name": "[concat(variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'))]",
         "location": "[resourceGroup().location]",
         "copy": {
-          "name": "nodeNicCopy1",
+          "name": "nodeNicCopy2",
           "count": "[variables('firstCount')]"
         },
         "properties": {
@@ -223,7 +387,7 @@
         "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'))]",
         "location": "[resourceGroup().location]",
         "dependsOn": [
-          "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'))]"
+          "[if(equals(parameters('nodeType'),'fileTransfer'),concat('Microsoft.Network/networkInterfaces/', variables('nicName'), '-', padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')),concat('Microsoft.Network/networkInterfaces/', variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')))]"
         ],
         "copy": {
           "name": "workerVMCopy1",
@@ -247,6 +411,7 @@
              },
             "osDisk": {
               "createOption": "FromImage",
+              "caching": "ReadWrite",
               "diskSizeGB": 1023,
               "managedDisk": {
                 "storageAccountType": "Premium_LRS"
@@ -272,7 +437,7 @@
           "networkProfile": {
             "networkInterfaces": [
               {
-                "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')))]"
+                "id": "[if(equals(parameters('nodeType'),'fileTransfer'),resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), '-', padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'))),resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'))))]"
               }
             ]
           }
@@ -358,6 +523,7 @@
             },
             "osDisk": {
               "createOption": "FromImage",
+              "caching": "ReadWrite",
               "diskSizeGB": 1023,
               "managedDisk": {
                 "storageAccountType": "Premium_LRS"
@@ -414,4 +580,4 @@
         }
       }
     ]
-  }
+}
