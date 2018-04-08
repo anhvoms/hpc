@@ -359,7 +359,7 @@
         "apiVersion": "2017-06-01",
         "condition":"[not(equals(parameters('nodeType'),'fileTransfer'))]",
         "type": "Microsoft.Network/networkInterfaces",
-        "name": "[if(equals(parameters('nodeType'),'fileTransfer'), concat(variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')), concat(variables('nicName'), '-', padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')))]",
+        "name": "[if(equals(parameters('nodeType'),'fileTransfer'), concat(variables('nicName'), '-', padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')), concat(variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')))]",
         "location": "[resourceGroup().location]",
         "copy": {
           "name": "nodeNicCopy2",
@@ -387,7 +387,7 @@
         "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'))]",
         "location": "[resourceGroup().location]",
         "dependsOn": [
-          "[if(equals(parameters('nodeType'),'fileTransfer'),concat('Microsoft.Network/networkInterfaces/', variables('nicName'), '-', padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')),concat('Microsoft.Network/networkInterfaces/', variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')))]"
+          "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'))]"
         ],
         "copy": {
           "name": "workerVMCopy1",
@@ -499,7 +499,7 @@
         "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0'))]",
         "location": "[resourceGroup().location]",
         "dependsOn": [
-          "[if(equals(variables('overflow'),1), concat(variables('nicName'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0')), concat(variables('nicName'), '-', padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0')))]"
+          "[if(equals(variables('overflow'),1), concat(variables('nicName'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0')), concat(variables('nicName'), '--', padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0')))]"
         ],
         "copy": {
           "name": "nodeVMCopy2",
