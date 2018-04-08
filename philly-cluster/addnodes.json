@@ -470,7 +470,7 @@
         "apiVersion": "2017-06-01",
         "condition": "[equals(variables('overflow'),1)]",
         "type": "Microsoft.Network/networkInterfaces",
-        "name": "[concat(variables('nicName'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0'))]",
+        "name": "[if(equals(variables('overflow'),concat(variables('nicName'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0')), concat(variables('nicName'), '-', padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0')))]",
         "location": "[resourceGroup().location]",
         "copy": {
           "name": "nodeNicCopy2",
@@ -499,7 +499,7 @@
         "name": "[concat(parameters('nodePrefix'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0'))]",
         "location": "[resourceGroup().location]",
         "dependsOn": [
-          "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0'))]"
+          "[if(equals(variables('overflow'),concat(variables('nicName'), padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0')), concat(variables('nicName'), '-', padLeft(copyindex(variables('secondStartIndex')),variables('paddedLength'),'0')))]"
         ],
         "copy": {
           "name": "nodeVMCopy2",
