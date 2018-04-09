@@ -437,7 +437,7 @@
           "networkProfile": {
             "networkInterfaces": [
               {
-                "id": "[if(equals(parameters('nodeType'),'fileTransfer'),resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), '-', padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'))),resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0'))))]"
+                "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'), padLeft(copyindex(parameters('startIndex')),variables('paddedLength'),'0')))]"
               }
             ]
           }
