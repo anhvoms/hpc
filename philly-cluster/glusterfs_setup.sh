@@ -594,7 +594,7 @@ if [ $raid_level -ge 0 ]; then
             mdadm_detail=$(mdadm --detail --scan)
             if [ -z $mdadm_detail ]; then
                 set -e
-                mdadm --create --chunk 128 --verbose $target --level=$raid_level --raid-devices=$numdisks ${raid_array[@]}
+                mdadm --create --force --chunk 128 --verbose $target --level=$raid_level --raid-devices=$numdisks ${raid_array[@]}
                 format_target=1
             else
                 if [ $md_preexist -eq 0 ]; then
