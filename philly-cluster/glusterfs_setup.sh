@@ -427,8 +427,8 @@ EOF
         service procps reload
     fi
     # install required server_type software
-    apt-get update
     if [ $server_type == "nfs" ]; then
+        apt-get update
         apt-get install -y --no-install-recommends nfs-kernel-server nfs4-acl-tools
         # patch buggy nfs-mountd.service unit file
         # https://bugs.launchpad.net/ubuntu/+source/nfs-utils/+bug/1590799
@@ -460,7 +460,6 @@ EOF
         iptables -A INPUT -p tcp --destination-port 24007:24008 -j REJECT
         iptables -A INPUT -p tcp --destination-port 49152:49215 -j REJECT
         # install glusterfs server
-        apt-get install -y -q --no-install-recommends glusterfs-server
         # enable gluster service
         systemctl enable glusterfs-server
         # start service if not started
