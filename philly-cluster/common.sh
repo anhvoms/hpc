@@ -72,8 +72,9 @@ function applyCloudConfig()
     } >> /etc/rc.local
 
     /etc/init.d/docker restart
+    # Restarting journald to pick up updated journald settings defined in node's cloud config.
+    systemctl restart systemd-journald
 }
-
 
 function waitForDevice() {
     local device=$1
