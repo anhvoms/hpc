@@ -9,7 +9,7 @@
       "value": "@@123AbcAbcAbc"
     },
     "vmSize": {
-      "value": "Standard_DS5_V2"
+      "value": "Standard_DS5_v2"
     },
     "vmCount": {
       "value": 8

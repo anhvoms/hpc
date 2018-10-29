@@ -76,7 +76,7 @@
     },
     "purpose": {
       "type": "string",
-      "default": "testing",
+      "defaultValue": "testing",
       "metadata": {
         "description": "Provide a string that will be used as prefix namespace"
       }
@@ -88,7 +88,7 @@
     "subnetName": "Subnet",
     "subnetPrefix": "10.0.0.0/24",
     "storageAccountType": "Premium_LRS",
-    "publicIPAddressName": "[concat(parameters('purpose-'), 'publicIP-')]",
+    "publicIPAddressName": "[concat(parameters('purpose'), '-publicIP-')]",
     "virtualNetworkName": "[concat(parameters('purpose'),'-vnet')]",
     "scriptFolder": "scripts",
     "frontEndNSGName": "[concat(parameters('purpose'),'-nsg')]",
@@ -98,7 +98,8 @@
     "scriptsToDownload": [
       "[variables('scriptToRun')]"
     ],
-    "cmdToExecute": "[./setupScript.sh]"
+    "cmdToExecute": "[concat('./setupScript.sh ', parameters('adminUsername'))]",
+    "paddedLength": 3
   },
   "resources": [
     {
@@ -117,7 +118,7 @@
     {
       "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[concat(variables('publicIPAddressName'), copyindex())]",
+      "name": "[concat(variables('publicIPAddressName'), padLeft(copyindex(), variables('paddedLength'), '0'))]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "publicIPCopy",
@@ -178,14 +179,14 @@
     {
       "apiVersion": "2017-06-01",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('nicName'), copyindex())]",
+      "name": "[concat(variables('nicName'), padLeft(copyindex(), variables('paddedLength'), '0'))]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name":"nicCopy",
         "count":"[parameters('vmCount')]"
       },
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'),copyindex())]",
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'),padLeft(copyindex(), variables('paddedLength'), '0'))]",
         "[variables('virtualNetworkName')]"
       ],
       "properties": {
@@ -195,7 +196,7 @@
             "properties": {
               "privateIPAllocationMethod": "Dynamic",
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIPAddressName'), copyindex()))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIPAddressName'), padLeft(copyindex(), variables('paddedLength'), '0')))]"
               },
               "subnet": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]"
@@ -214,12 +215,12 @@
       "type": "Microsoft.Compute/virtualMachines",
       "copy": {
         "name":"vmCopy",
-        "count":"vmCount"
+        "count":"[parameters('vmCount')]"
       },
-      "name": "[concat(variables('vmPrefix'),copyindex())]",
+      "name": "[concat(variables('vmPrefix'),padLeft(copyindex(), variables('paddedLength'), '0'))]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[variables('nicName')]"
+        "[concat(variables('nicName'), padLeft(copyindex(), variables('paddedLength'), '0'))]"
       ],
       "properties": {
         "availabilitySet": {
@@ -229,7 +230,7 @@
           "vmSize": "[parameters('vmSize')]"
         },
         "osProfile": {
-          "computerName": "[concat(variables('vmPrefix'), copyindex())]",
+          "computerName": "[concat(variables('vmPrefix'), padleft(copyindex(), variables('paddedLength'), '0'))]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         },
@@ -250,7 +251,7 @@
               "name": "dataDisks",
               "count": "[parameters('disksInRAID')]",
               "input": {
-                "name": "[concat(variables('vmPrefix'), copyIndex('vmCopy'), '-disk-', copyIndex('dataDisks'))]",
+                "name": "[concat(variables('vmPrefix'), padLeft(copyIndex('vmCopy'),variables('paddedLength'), '0'), '-disk-', copyIndex('dataDisks'))]",
                 "lun": "[copyIndex('dataDisks')]",
                 "diskSizeGB": "[parameters('diskSizeGB')]",
                 "caching": "ReadOnly",
@@ -269,19 +270,19 @@
             }
           ]
         }
-      },
+      }
     },
     {
       "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(parameters('purpose'), '/Installation')]",
+      "name": "[concat(parameters('purpose'), '-', padLeft(copyindex(), variables('paddedLength'), '0'), '/Installation')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('vmPrefix'), copyindex())]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmPrefix'), padLeft(copyindex(), variables('paddedLength'), '0'))]"
       ],
       "copy": {
         "name": "nodeExtCopy",
-        "count": "[variables('vmCount')]"
+        "count": "[parameters('vmCount')]"
       },
       "properties": {
         "publisher": "Microsoft.Azure.Extensions",
