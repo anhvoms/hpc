@@ -236,7 +236,7 @@
         },
         "storageProfile": {
           "imageReference": {
-            "id": "[parameters('OSImage')]"
+            "id": "[parameters('vmImage')]"
           },
           "osDisk": {
             "caching": "ReadWrite",
