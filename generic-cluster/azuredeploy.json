@@ -1,0 +1,298 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "philly",
+      "metadata": {
+        "description": "Username for the test VMs."
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Password for the test VMs."
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_A5",
+        "Standard_A8",
+        "Standard_D4",
+        "Standard_D14",
+        "Standard_DS4",
+        "Standard_DS14",
+        "Standard_D3_v2",
+        "Standard_D15_v2",
+        "Standard_DS3_v2",
+        "Standard_DS5_v2",
+        "Standard_DS15_v2",
+        "Standard_F16S"
+      ],
+      "defaultValue": "Standard_F16S",
+      "metadata": {
+        "description": "Size of the VM that runs the test."
+      }
+    },
+    "vmCount": {
+      "type": "int",
+      "defaultValue": 3,
+      "minValue": 1,
+      "maxValue": 20,
+      "metadata": {
+        "description": "Number of VMs to deployed."
+      }
+    },
+    "diskSizeGB": {
+      "type": "string",
+      "allowedValues": [
+        "128",
+        "512",
+        "1023",
+        "4095"
+      ],
+      "defaultValue": "4095",
+      "metadata": {
+        "description": "Disk size in GB."
+      }
+    },
+    "disksInRAID": {
+      "type": "int",
+      "defaultValue": 5,
+      "minValue": 1,
+      "maxValue": 32,
+      "metadata": {
+        "description": "Number of disks striped in RAID. Should not be greater than selected instance type allows."
+      }
+    },
+    "vmImage": {
+      "type": "string",
+      "defaultValue": "custom_image",
+      "metadata": {
+        "description": "id of custom image"
+      }
+    },
+    "purpose": {
+      "type": "string",
+      "default": "testing",
+      "metadata": {
+        "description": "Provide a string that will be used as prefix namespace"
+      }
+    }
+  },
+  "variables": {
+    "nicName": "[concat(parameters('purpose'),'-nic-')]",
+    "addressPrefix": "10.0.0.0/16",
+    "subnetName": "Subnet",
+    "subnetPrefix": "10.0.0.0/24",
+    "storageAccountType": "Premium_LRS",
+    "publicIPAddressName": "[concat(parameters('purpose-'), 'publicIP-')]",
+    "virtualNetworkName": "[concat(parameters('purpose'),'-vnet')]",
+    "scriptFolder": "scripts",
+    "frontEndNSGName": "[concat(parameters('purpose'),'-nsg')]",
+    "vmPrefix": "[concat(parameters('purpose'),'-')]",
+    "avSetName": "[concat(parameters('purpose'),'-avSet')]",
+    "scriptToRun":"https://raw.githubusercontent.com/anhvoms/hpc/master/generic-cluster/setupScript.sh",
+    "scriptsToDownload": [
+      "[variables('scriptToRun')]"
+    ],
+    "cmdToExecute": "[./setupScript.sh]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[variables('avSetName')]",
+      "apiVersion": "2017-03-30",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "name": "Aligned"
+      },
+      "properties": {
+        "platformFaultDomainCount": 2,
+        "platformUpdateDomainCount": 6
+      }
+    },
+    {
+      "apiVersion": "2017-06-01",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[concat(variables('publicIPAddressName'), copyindex())]",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "publicIPCopy",
+        "count": "[parameters('vmCount')]"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic"
+      }
+    },
+    {
+      "apiVersion": "2017-06-01",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('frontEndNSGName')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "NSG"
+      },
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh-rule",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2017-06-01",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('addressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('subnetPrefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2017-06-01",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(variables('nicName'), copyindex())]",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name":"nicCopy",
+        "count":"[parameters('vmCount')]"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'),copyindex())]",
+        "[variables('virtualNetworkName')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIPAddressName'), copyindex()))]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup":{
+          "id":"[resourceId('Microsoft.Network/networkSecurityGroups', variables('frontEndNSGName'))]"
+        },
+        "enableAcceleratedNetworking":true
+      }
+    },
+    {
+      "apiVersion": "2017-03-30",
+      "type": "Microsoft.Compute/virtualMachines",
+      "copy": {
+        "name":"vmCopy",
+        "count":"vmCount"
+      },
+      "name": "[concat(variables('vmPrefix'),copyindex())]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[variables('nicName')]"
+      ],
+      "properties": {
+        "availabilitySet": {
+          "id":"[resourceId('Microsoft.Compute/availabilitySet', variables('avSetName'))]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(variables('vmPrefix'), copyindex())]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('OSImage')]"
+          },
+          "osDisk": {
+            "caching": "ReadWrite",
+            "createOption": "FromImage",
+            "diskSizeGB": 1023,
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          },
+          "copy": [
+            {
+              "name": "dataDisks",
+              "count": "[parameters('disksInRAID')]",
+              "input": {
+                "name": "[concat(variables('vmPrefix'), copyIndex('vmCopy'), '-disk-', copyIndex('dataDisks'))]",
+                "lun": "[copyIndex('dataDisks')]",
+                "diskSizeGB": "[parameters('diskSizeGB')]",
+                "caching": "ReadOnly",
+                "createOption": "Empty",
+                "managedDisk": {
+                  "storageAccountType": "Premium_LRS"
+                }
+              }
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('nicName'), copyindex()))]"
+            }
+          ]
+        }
+      },
+    },
+    {
+      "apiVersion": "2017-03-30",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('purpose'), '/Installation')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmPrefix'), copyindex())]"
+      ],
+      "copy": {
+        "name": "nodeExtCopy",
+        "count": "[variables('vmCount')]"
+      },
+      "properties": {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "fileUris": "[variables('scriptsToDownload')]",
+          "commandToExecute": "[variables('cmdToExecute')]"
+        }
+      }
+    }
+  ]
+}

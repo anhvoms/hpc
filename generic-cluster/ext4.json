@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUserName": {
+      "value": "philly"
+    },
+    "adminPassword": {
+      "value": "@@123AbcAbcAbc"
+    },
+    "vmSize": {
+      "value": "Standard_DS5_V2"
+    },
+    "vmCount": {
+      "value": 8
+    },
+    "diskSizeGB": {
+      "value": "4095"
+    },
+    "disksInRAID": {
+      "value": 5
+    },
+    "vmImage": {
+      "value": "/subscriptions/cf9978af-7991-4581-b037-6df9e6045150/resourceGroups/PhillyAZImageSouthCentral/providers/Microsoft.Compute/images/PhillyImage9"
+    },
+    "purpose": {
+      "value": "gfsext4"
+    }
+  }
+}
