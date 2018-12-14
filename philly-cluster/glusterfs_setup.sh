@@ -631,7 +631,7 @@ if [ $raid_level -ge 0 ]; then
         btrfs filesystem show
     else
         cat /proc/mdstat
-        mdadm --detail $target
+        mdadm --detail "$target"
     fi
     # get uuid of first disk as target uuid if not populated
     if [ -z $target_uuid ]; then
@@ -648,9 +648,23 @@ if [ $format_target -eq 1 ]; then
         echo "Target not specified for format"
         exit 1
     fi
+    sleep 5
     echo "Creating filesystem on $target."
     if [ $filesystem == "btrfs" ]; then
         mkfs.btrfs $target
+    elif [ $filesystem == "xfs" ]; then
+        mdadm --detail --scan
+        set +e
+        # let mkfs.xfs automatically select the appropriate su/sw
+        if ! mkfs.xfs "$target"; then
+            # mkfs.xfs can sometimes fail because it can't query the
+            # underlying device, try to re-assemble and retry format
+            set -e
+            mdadm --verbose --assemble "$target" "${raid_array[@]}"
+            mdadm --detail --scan
+            mkfs.xfs "$target"
+        fi
+        set -e
     elif [[ $filesystem == ext* ]]; then
         mkfs.${filesystem} -m 0 $target
     else

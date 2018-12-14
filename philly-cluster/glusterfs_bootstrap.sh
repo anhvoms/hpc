@@ -66,16 +66,16 @@ done
 #   -s [server type] server type
 #   -t [mount options] mount options
 hostPrefixOption='-d '$hostprefix
-fileSystemOption='-f ext4'
+fileSystemOption='-f xfs'
 peerIPsOption='-i '$(IFS=, ; echo "${private_ips[*]}")
 mountpointOption='-m /data'
 tuneTcpOption='-n'
-#serverOption='gv0,replica 3,tcp,performance.cache-size:1GB,auth.allow:'$vnetAddressSpace
+#serverOption='gv0,replica 3,tcp,performance.cache-size:4GB,auth.allow:'$vnetAddressSpace
 serverOption='gv0,replica 3,tcp'
 premiumOption='-p'
 raidLevelOption='-r 0'
 serverTypeOption='-s glusterfs'
-mountOption='-t noatime,nodiratime'
+mountOption='-t relatime,nodiratime'
 
 echo "Executing glusterfs_setup.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o $serverOption $premiumOption $raidLevelOption $serverTypeOption $mountOption $brickOnlyOption"
 ./glusterfs_setup.sh $hostPrefixOption $fileSystemOption $peerIPsOption $mountpointOption $tuneTcpOption -o "$serverOption" $premiumOption $raidLevelOption $serverTypeOption $mountOption $brickOnlyOption
