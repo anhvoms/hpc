@@ -185,12 +185,12 @@ setup_glusterfs() {
     if [ ${peers[0]} == $ipaddress ]; then
         # construct brick locations
         local bricks=
-        for host in "${hosts[@]}"
+        for ip in "${peers[@]}"
         do
-            bricks+=" $host:$gluster_brick_location"
+            bricks+=" $ip:$gluster_brick_location"
             # probe peer
-            if [ $host != $myhostname ]; then
-                gluster_peer_probe $host
+            if [ $ip != $ipaddress ]; then
+                gluster_peer_probe $ip
             fi
         done
         # wait for connections
