@@ -718,6 +718,8 @@ if [ $attach_disks -eq 0 ]; then
                 if [ $filesystem == "btrfs" ]; then
                     # also enable ssd optimizations on btrfs
                     mount_options+=",nobarrier,ssd"
+                elif [ $filesystem == "xfs" ]; then
+                    mount_options+=",nobarrier"
                 else
                     mount_options+=",barrier=0"
                 fi
